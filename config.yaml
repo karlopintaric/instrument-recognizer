@@ -1,0 +1,99 @@
+# Configuration for the trainer
+---
+# Dataloader settings
+train_dir: ./data/processed/all_sync/IRMAS_Training_Data
+valid_dir: ./data/raw/IRMAS_Validation_Data
+
+# Preprocessing done on raw audio
+preprocess: 
+  name: PreprocessPipeline
+  args:
+    target_sr: 16000
+
+# Transforms applied on raw audio after preprocessing
+transforms_not_used:
+- name: Preemphasis
+  args:
+- name: Spectrogram
+  args:
+    sample_rate: 16000
+    n_mels: 128
+    hop_length: 160
+    n_fft: 800
+- name: LogTransform
+  args:
+- name: PadCutToLength
+  args:
+    max_length: 1024
+- name: Normalize
+  args:
+    mean: -4.2677393
+    std: 9.1379948
+  
+transforms:
+- name: FeatureExtractor
+  args:
+    sr: 16000
+
+# Augmentations for spectrograms
+signal_augments:
+spec_augments:
+
+batch_size: 32
+
+# Training settings
+model_name: "MIT/ast-finetuned-audioset-10-10-0.4593"
+
+loss:
+  name: WeightedFocalLoss
+  args:
+    pos_weight:
+    n_classes:
+
+optimizer:
+  name: AdamW
+  args:
+    lr: 0.001
+    weight_decay: 0.01
+
+lr_policy:
+  type: differential
+  params:
+    - lr: 0.001
+      layers: base_model
+    - lr: 0.001
+      layers: classifier
+
+# Gradient accumulation
+num_accum: 1
+
+verbose: True
+
+EPOCHS: 10
+
+metrics: ["hamming_score", "zero_one_score", "mean_average_precision", "mean_f1_score", "LRAP"]
+
+model:
+
+scheduler:
+  name: OneCycleLR
+  args:
+    pct_start: 0.3
+    anneal_strategy: cos
+
+early_stopping: 
+  enable: True
+  args:
+    patience: 10
+    min_delta: 0.001
+
+save_best_model: True
+amp: False
+
+
+
+
+
+
+
+
