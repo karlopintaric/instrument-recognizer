@@ -11,7 +11,7 @@ preprocess:
     target_sr: 16000
 
 # Transforms applied on raw audio after preprocessing
-transforms_not_used:
+transforms:
 - name: Preemphasis
   args:
 - name: Spectrogram
@@ -30,7 +30,7 @@ transforms_not_used:
     mean: -4.2677393
     std: 9.1379948
   
-transforms:
+transforms_not_used:
 - name: FeatureExtractor
   args:
     sr: 16000
@@ -59,9 +59,9 @@ optimizer:
 lr_policy:
   type: differential
   params:
-    - lr: 0.001
+    - lr: 5.0E-6
       layers: base_model
-    - lr: 0.001
+    - lr: 1.0E-2
       layers: classifier
 
 # Gradient accumulation
@@ -69,7 +69,7 @@ num_accum: 1
 
 verbose: True
 
-EPOCHS: 10
+EPOCHS: 4
 
 metrics: ["hamming_score", "zero_one_score", "mean_average_precision", "mean_f1_score", "LRAP"]
 
@@ -78,7 +78,7 @@ model:
 scheduler:
   name: OneCycleLR
   args:
-    pct_start: 0.3
+    pct_start: 0.25
     anneal_strategy: cos
 
 early_stopping: 

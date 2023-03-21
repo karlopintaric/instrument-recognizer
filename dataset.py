@@ -68,7 +68,7 @@ def collate_fn(data):
 def get_loader(config, subset):
 
     dst = IRMASDataset(config.train_dir if subset=="train" else config.valid_dir,
-                       preprocess=init_obj(config.preprocess, transform_module),
+                       preprocess=init_transforms(config.preprocess, transform_module),
                        transforms=init_transforms(config.transforms, transform_module),
                        signal_augments=init_transforms(config.signal_augments, transform_module),
                        spec_augments=init_transforms(config.spec_augments, torchaudio.transforms),

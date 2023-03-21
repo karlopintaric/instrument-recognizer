@@ -64,7 +64,20 @@ def parse_config(config_path):
     with open(config_path) as file:
         return SimpleNamespace(**yaml.safe_load(file))
 
-def init_obj(fn_type, module, *args, **kwargs):
+def init_obj(fn_name, module, *args, **kwargs):
+    
+    fn = getattr(module, fn_name)
+    fn_args = fn_name.get("parameters")
+    
+    if fn_args is not None:
+        assert all([k not in fn_args for k in kwargs])
+        fn_args.update(kwargs)
+        
+        return fn(*args, **fn_args)
+    else:
+        return fn(*args, **kwargs)
+    
+def init_obj_old(fn_type, module, *args, **kwargs):
     
     if fn_type is None:
         return None
@@ -86,7 +99,7 @@ def init_obj(fn_type, module, *args, **kwargs):
     else:
         return fn(*args, **kwargs)
     
-def diff_lr(config, model):
+def diff_lr_old(config, model):
     parameters = []
     if config.lr_policy['type'] == 'differential':
 
@@ -99,13 +112,23 @@ def diff_lr(config, model):
     
     return parameters
 
+def diff_lr(config, model):
+    parameters = []
+    param_dict = config.learning_rates
+    
+    for param_group in param_dict.keys():
+        params = param_group["parameters"]
+        parameters += [{'params': [p for n, p in model.named_parameters() if param_group in n],
+                    'lr': params['lr']}]
+    return parameters
+
 def init_transforms(config, module_name):
     
     if config is None:
         return None
 
     transforms = []
-    for transform in config:
+    for transform in config.keys():
         transforms.append(init_obj(transform, module_name))
     
     return Compose(transforms)

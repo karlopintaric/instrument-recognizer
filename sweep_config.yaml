@@ -1,0 +1,156 @@
+# Configuration for the trainer
+---
+# Sweep config
+method: bayes
+metric:
+  name: val_loss
+  goal: minimize
+
+# Dataloader settings
+train_dir:
+  value:
+    ./data/processed/all_sync/IRMAS_Training_Data
+
+valid_dir: 
+  value:
+    ./data/raw/IRMAS_Validation_Data
+
+# Preprocessing done on raw audio
+preprocess: 
+  
+  PreprocessPipeline:
+    parameters:
+      target_sr: 
+        value:
+          22050
+
+# Transforms applied on raw audio after preprocessing
+transforms:
+  
+  Preemphasis:
+  
+  Spectrogram:
+    parameters:
+      sample_rate: 
+        value:
+          22050
+      n_mels: 
+        values: [128, 96, 64]
+      hop_length:
+        values: [64, 128, 256, 512]
+      n_fft:
+        values: [512, 1024, 2048]
+  
+  LogTransform:
+  
+  PadCutToLength:
+    parameters:
+      max_length: 
+        value:
+          1024
+  
+  Normalize:
+    parameters:
+      mean: 
+        value:
+          -4.2677393
+      std: 
+        value:
+          9.1379948
+  
+transforms_not_used:
+- type: FeatureExtractor
+  parameters:
+    sr: 22050
+
+# Augmentations for spectrograms
+signal_augments:
+spec_augments:
+
+batch_size: 
+  value:
+    8
+
+# Training settings
+
+loss:
+  
+  FocalLoss:
+    parameters:
+      alpha:
+        values: [-1, 0.25, 0.5, 0.75]
+      gamma:
+        values: [1,2,3]
+
+optimizer:
+  
+  AdamW:
+    parameters:
+      weight_decay:
+        distribution: log_uniform_values
+        min: 1.0E-1
+        max: 1.0E-7
+
+learning_rates:
+  
+  base_model:
+    parameters:
+      lr: 
+        distribution: log_uniform_values
+        min: 1.0E-8
+        max: 1.0E-5
+  classifier:
+    parameters:
+      lr: 
+        distribution: log_uniform_values
+        min: 1.0E-4
+        max: 1.0E-1
+
+# Gradient accumulation
+num_accum: 
+  values: [4, 6, 8]
+
+verbose: True
+
+EPOCHS: 
+  distribution: int_uniform
+  min: 1
+  max: 7
+
+metrics: 
+- hamming_score 
+- zero_one_score
+- mean_average_precision
+- mean_f1_score
+
+
+scheduler:
+  
+  OneCycleLR:
+    parameters:
+      pct_start: 
+        distribution: uniform
+        min: 0
+        max: 0.5
+      anneal_strategy: 
+        value:
+          cos
+
+early_stopping: 
+  parameters:
+    patience: 
+      value:
+        3
+    min_delta: 
+      value:
+        0.0001
+
+save_best_model: True
+
+
+
+
+
+
+
+

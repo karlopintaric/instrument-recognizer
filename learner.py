@@ -31,23 +31,18 @@ class Learner():
         
         self.verbose = self.config.verbose
         self.metrics = MetricTracker(self.config.metrics, self.verbose)
-        
-        if self.config.early_stopping["enable"]:
-            self.early_stop = EarlyStopping(**self.config.early_stopping["args"])
-        else:
-            self.early_stop = None
-        
+        self.early_stop = EarlyStopping(**self.config.early_stopping["args"]
         self.scaler = torch.cuda.amp.GradScaler()
         
     def fit(self, epochs: int, lr: float=None, model_name: str="model"):
          
         best_val_loss = np.inf
-        loop = tqdm(range(epochs), leave=False)
+        loop = tqdm(range(self.config.EPOCHS), leave=False)
 
         for epoch in loop:
             
-            train_loss = self._train_epoch(epoch)
-            val_loss = self._test_epoch(epoch)
+            train_loss = self._train_epoch()
+            val_loss = self._test_epoch()
             
             wandb.log({"train_loss": train_loss,
                        "val_loss": val_loss})
@@ -63,12 +58,11 @@ class Learner():
                     best_val_loss = val_loss
                     torch.save(self.model.state_dict(), f"{model_name}.pth")
             
-            if self.early_stop is not None:
-                if self.early_stop(val_loss):
-                    print(f'No change in validation loss since epoch {epoch+1-self.early_stop.counter}\n'
-                        f'Early stopping...')
-                    break
-        
+            if self.early_stop(val_loss):
+                print(f'No change in validation loss since epoch {epoch+1-self.early_stop.counter}\n'
+                    f'Early stopping...')
+                break
+
 
     def _train_epoch(self):
     
@@ -91,6 +85,7 @@ class Learner():
                     
             # backward
             self.scaler.scale(loss).backward()
+            wandb.log({f'lr_param_group_{i}': lr for i,lr in enumerate(self.scheduler.get_last_lr())})
             
             if ((idx + 1) % self.config.num_accum == 0) or (idx + 1 == num_batches):
                 self.scaler.step(self.optimizer)
@@ -100,6 +95,7 @@ class Learner():
                 
             # update loop
             loop.set_postfix(loss=loss.item())
+            wandb.log({"train_loss_per_batch": loss.item()})
             train_loss += loss.item()
         
         train_loss /= num_batches            
@@ -120,7 +116,9 @@ class Learner():
             for Xb, yb in loop:
                 Xb, yb = Xb.to(self.device), yb.to(self.device)
                 pred = self.model(Xb)
-                test_loss += self.loss_fn(pred, yb).item()
+                loss = self.loss_fn(pred, yb).item()
+                test_loss += loss
+                wandb.log({"valid_loss_per_batch": loss})
                 
                 pred = torch.sigmoid(pred)
                 preds.extend(pred.cpu().numpy())

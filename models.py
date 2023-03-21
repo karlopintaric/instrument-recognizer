@@ -22,11 +22,11 @@ class WeightedLayerPooling(nn.Module):
 
 class ASTWithWeightedLayerPooling(nn.Module):
 
-    def __init__(self, model_name: str, n_classes: int=11, layer_start_pool: int=9):
+    def __init__(self, model_name: str="MIT/ast-finetuned-audioset-10-10-0.4593", n_classes: int=11, layer_start_pool: int=9):
         super().__init__()
         config = AutoConfig.from_pretrained(model_name)
         config.update({'output_hidden_states':True})
-        self.base_model = AutoModel.from_pretrained(model_name, config=config)
+        self.base_model = freeze(AutoModel.from_pretrained(model_name, config=config))
         
         pooler = WeightedLayerPooling(config.num_hidden_layers,
                                            layer_start=layer_start_pool, 

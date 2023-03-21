@@ -34,7 +34,7 @@ class LabelsFromTxt:
 
     def __call__(self, path):
         path = path.replace("wav", "txt")
-        label = np.genfromtxt(path, dtype=str, ndmin=1, delimiter=self.delimiter)
+        label = np.loadtxt(path, dtype=str, ndmin=1, delimiter=self.delimiter)
         return label
 
 class PreprocessPipeline(nn.Module):
