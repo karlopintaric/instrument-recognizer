@@ -1,94 +1,103 @@
 # Configuration for the trainer
 ---
+
 # Dataloader settings
-train_dir: ./data/processed/all_sync/IRMAS_Training_Data
+train_dir: ./data/raw/IRMAS_Training_Data
+
 valid_dir: ./data/raw/IRMAS_Validation_Data
 
 # Preprocessing done on raw audio
 preprocess: 
-  name: PreprocessPipeline
-  args:
-    target_sr: 16000
+  
+  PreprocessPipeline:
+    parameters:
+      target_sr: 22050
 
 # Transforms applied on raw audio after preprocessing
 transforms:
-- name: Preemphasis
-  args:
-- name: Spectrogram
-  args:
-    sample_rate: 16000
-    n_mels: 128
-    hop_length: 160
-    n_fft: 800
-- name: LogTransform
-  args:
-- name: PadCutToLength
-  args:
-    max_length: 1024
-- name: Normalize
-  args:
-    mean: -4.2677393
-    std: 9.1379948
+  
+  Preemphasis:
+  
+  Spectrogram:
+    parameters:
+      sample_rate: 22050
+      n_mels: 128
+      hop_length: 160
+      n_fft: 800
+  
+  LogTransform:
+  
+  PadCutToLength:
+    parameters:
+      max_length: 1024
+  
+  Normalize:
+    parameters:
+      mean: -4.2677393
+      std: 9.1379948
   
 transforms_not_used:
-- name: FeatureExtractor
-  args:
-    sr: 16000
+- type: FeatureExtractor
+  parameters:
+    sr: 22050
 
 # Augmentations for spectrograms
 signal_augments:
 spec_augments:
 
-batch_size: 32
+batch_size: 8
 
 # Training settings
-model_name: "MIT/ast-finetuned-audioset-10-10-0.4593"
 
 loss:
-  name: WeightedFocalLoss
-  args:
-    pos_weight:
-    n_classes:
+  
+  type: FocalLoss
+  parameters:
+    alpha: 0.25
+    gamma: 2
 
 optimizer:
-  name: AdamW
-  args:
-    lr: 0.001
-    weight_decay: 0.01
+  
+  type: AdamW
+  parameters:
+    weight_decay: 1.0E-4
 
-lr_policy:
-  type: differential
-  params:
-    - lr: 5.0E-6
-      layers: base_model
-    - lr: 1.0E-2
-      layers: classifier
+learning_rates:
+  
+  base_model:
+    parameters:
+      lr: 1.0E-8
+  classifier:
+    parameters:
+      lr: 1.0E-3
 
 # Gradient accumulation
-num_accum: 1
+num_accum: 2
 
 verbose: True
 
 EPOCHS: 4
 
-metrics: ["hamming_score", "zero_one_score", "mean_average_precision", "mean_f1_score", "LRAP"]
+metrics: 
+- hamming_score 
+- zero_one_score
+- mean_average_precision
+- mean_f1_score
 
-model:
 
 scheduler:
-  name: OneCycleLR
-  args:
-    pct_start: 0.25
+  
+  type: OneCycleLR
+  parameters:
+    pct_start: 0.3
     anneal_strategy: cos
 
 early_stopping: 
-  enable: True
-  args:
-    patience: 10
+  parameters:
+    patience: 3
     min_delta: 0.001
 
 save_best_model: True
-amp: False
 
 
 

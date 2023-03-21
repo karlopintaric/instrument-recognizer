@@ -64,32 +64,39 @@ def parse_config(config_path):
     with open(config_path) as file:
         return SimpleNamespace(**yaml.safe_load(file))
 
-def init_obj(fn_name, module, *args, **kwargs):
+def init_transforms(fn_dict, module):
+    transforms = init_objs(fn_dict, module)
+    if transforms is not None:
+        transforms = ComposeTransforms(transforms)
+    return transforms
+
+def init_objs(fn_dict, module):
     
-    fn = getattr(module, fn_name)
-    fn_args = fn_name.get("parameters")
-    
-    if fn_args is not None:
-        assert all([k not in fn_args for k in kwargs])
-        fn_args.update(kwargs)
+    if fn_dict is None:
+        return None
+
+    transforms = []
+    for transform in fn_dict.keys():
+        fn = getattr(module, transform)
+        fn_args = fn_dict[transform]
         
-        return fn(*args, **fn_args)
-    else:
-        return fn(*args, **kwargs)
+        if fn_args is None:
+            transforms.append(fn())
+        else:
+            fn_args = fn_args.get("parameters")
+            transforms.append(fn(**fn_args))
     
-def init_obj_old(fn_type, module, *args, **kwargs):
+    return transforms
     
-    if fn_type is None:
+def init_obj(fn_dict, module, *args, **kwargs):
+    
+    if fn_dict is None:
         return None
     
-    name = fn_type.get("name")
+    name = fn_dict.get("type")
     
-    try:
-        fn = getattr(module, name)
-    except:
-        fn = getattr(nn, name)
-    
-    fn_args = fn_type.get("args")
+    fn = getattr(module, name)
+    fn_args = fn_dict.get("parameters")
     
     if fn_args is not None:
         assert all([k not in fn_args for k in kwargs])
@@ -116,22 +123,21 @@ def diff_lr(config, model):
     parameters = []
     param_dict = config.learning_rates
     
-    for param_group in param_dict.keys():
-        params = param_group["parameters"]
+    for param_group, params in param_dict.items():
+        params = params.get("parameters")
         parameters += [{'params': [p for n, p in model.named_parameters() if param_group in n],
                     'lr': params['lr']}]
     return parameters
 
-def init_transforms(config, module_name):
-    
-    if config is None:
-        return None
+class ComposeTransforms:
 
-    transforms = []
-    for transform in config.keys():
-        transforms.append(init_obj(transform, module_name))
+    def __init__(self, transforms: list):
+        self.transforms = transforms
     
-    return Compose(transforms)
+    def __call__(self, input, *args):
+        for t in self.transforms:
+            input = t(input, *args)
+        return input
 
 def freeze(model):
 

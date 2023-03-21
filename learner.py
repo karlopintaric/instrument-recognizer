@@ -31,7 +31,7 @@ class Learner():
         
         self.verbose = self.config.verbose
         self.metrics = MetricTracker(self.config.metrics, self.verbose)
-        self.early_stop = EarlyStopping(**self.config.early_stopping["args"]
+        self.early_stop = EarlyStopping(**self.config.early_stopping["parameters"])
         self.scaler = torch.cuda.amp.GradScaler()
         
     def fit(self, epochs: int, lr: float=None, model_name: str="model"):
