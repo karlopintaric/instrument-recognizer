@@ -48,6 +48,7 @@ spec_augments:
 batch_size: 8
 
 # Training settings
+model_name: "MIT/ast-finetuned-audioset-10-10-0.4593"
 
 loss:
   
@@ -95,7 +96,7 @@ scheduler:
 early_stopping: 
   parameters:
     patience: 3
-    min_delta: 0.001
+    min_delta: 0.0001
 
 save_best_model: True
 

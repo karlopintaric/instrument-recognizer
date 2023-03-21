@@ -34,6 +34,9 @@ class Learner():
         self.early_stop = EarlyStopping(**self.config.early_stopping["parameters"])
         self.scaler = torch.cuda.amp.GradScaler()
         
+        self.train_step = 0
+        self.test_step = 0
+        
     def fit(self, epochs: int, lr: float=None, model_name: str="model"):
          
         best_val_loss = np.inf
@@ -45,7 +48,8 @@ class Learner():
             val_loss = self._test_epoch()
             
             wandb.log({"train_loss": train_loss,
-                       "val_loss": val_loss})
+                       "val_loss": val_loss,
+                       "epoch": epoch+1})
             
             #self.scheduler.step(val_loss)
             
@@ -59,7 +63,7 @@ class Learner():
                     torch.save(self.model.state_dict(), f"{model_name}.pth")
             
             if self.early_stop(val_loss):
-                print(f'No change in validation loss since epoch {epoch+1-self.early_stop.counter}\n'
+                print(f'\nNo change in validation loss since epoch {epoch+1-self.early_stop.counter}\n'
                     f'Early stopping...')
                 break
 
@@ -95,7 +99,9 @@ class Learner():
                 
             # update loop
             loop.set_postfix(loss=loss.item())
-            wandb.log({"train_loss_per_batch": loss.item()})
+            self.train_step += 1
+            wandb.log({"train_loss_per_batch": loss.item(),
+                       "train_step": self.train_step})
             train_loss += loss.item()
         
         train_loss /= num_batches            
@@ -117,8 +123,10 @@ class Learner():
                 Xb, yb = Xb.to(self.device), yb.to(self.device)
                 pred = self.model(Xb)
                 loss = self.loss_fn(pred, yb).item()
+                self.test_step += 1
+                wandb.log({"valid_loss_per_batch": loss,
+                           "test_step": self.test_step})
                 test_loss += loss
-                wandb.log({"valid_loss_per_batch": loss})
                 
                 pred = torch.sigmoid(pred)
                 preds.extend(pred.cpu().numpy())
