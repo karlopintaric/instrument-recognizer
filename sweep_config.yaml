@@ -64,6 +64,12 @@ parameters:
               9.1379948
 
   # Augmentations for spectrograms
+  signal_augments:
+    value:
+      null
+  spec_augments:
+    value:
+      null
 
   batch_size: 
     value:
