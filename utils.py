@@ -64,6 +64,18 @@ def parse_config(config_path):
     with open(config_path) as file:
         return SimpleNamespace(**yaml.safe_load(file))
 
+def unflatten_dot(dictionary):
+    resultDict = dict()
+    for key, value in dictionary.items():
+        parts = key.split(".")
+        d = resultDict
+        for part in parts[:-1]:
+            if part not in d:
+                d[part] = dict()
+            d = d[part]
+        d[parts[-1]] = value
+    return SimpleNamespace(**resultDict)
+
 def init_transforms(fn_dict, module):
     transforms = init_objs(fn_dict, module)
     if transforms is not None:
@@ -83,7 +95,6 @@ def init_objs(fn_dict, module):
         if fn_args is None:
             transforms.append(fn())
         else:
-            fn_args = fn_args.get("parameters")
             transforms.append(fn(**fn_args))
     
     return transforms
@@ -93,10 +104,10 @@ def init_obj(fn_dict, module, *args, **kwargs):
     if fn_dict is None:
         return None
     
-    name = fn_dict.get("type")
+    name = list(fn_dict.keys())[0]
     
     fn = getattr(module, name)
-    fn_args = fn_dict.get("parameters")
+    fn_args = fn_dict[name]
     
     if fn_args is not None:
         assert all([k not in fn_args for k in kwargs])
@@ -124,7 +135,6 @@ def diff_lr(config, model):
     param_dict = config.learning_rates
     
     for param_group, params in param_dict.items():
-        params = params.get("parameters")
         parameters += [{'params': [p for n, p in model.named_parameters() if param_group in n],
                     'lr': params['lr']}]
     return parameters

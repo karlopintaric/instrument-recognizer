@@ -10,8 +10,7 @@ valid_dir: ./data/raw/IRMAS_Validation_Data
 preprocess: 
   
   PreprocessPipeline:
-    parameters:
-      target_sr: 22050
+    target_sr: 22050
 
 # Transforms applied on raw audio after preprocessing
 transforms:
@@ -19,7 +18,6 @@ transforms:
   Preemphasis:
   
   Spectrogram:
-    parameters:
       sample_rate: 22050
       n_mels: 128
       hop_length: 160
@@ -28,18 +26,11 @@ transforms:
   LogTransform:
   
   PadCutToLength:
-    parameters:
       max_length: 1024
   
   Normalize:
-    parameters:
       mean: -4.2677393
       std: 9.1379948
-  
-transforms_not_used:
-- type: FeatureExtractor
-  parameters:
-    sr: 22050
 
 # Augmentations for spectrograms
 signal_augments:
@@ -51,25 +42,20 @@ batch_size: 8
 model_name: "MIT/ast-finetuned-audioset-10-10-0.4593"
 
 loss:
-  
-  type: FocalLoss
-  parameters:
-    alpha: 0.25
-    gamma: 2
+  FocalLoss:
+      alpha: 0.25
+      gamma: 2
 
 optimizer:
   
-  type: AdamW
-  parameters:
-    weight_decay: 1.0E-4
+  AdamW:
+      weight_decay: 1.0E-4
 
 learning_rates:
   
   base_model:
-    parameters:
       lr: 1.0E-8
   classifier:
-    parameters:
       lr: 1.0E-3
 
 # Gradient accumulation
@@ -88,13 +74,11 @@ metrics:
 
 scheduler:
   
-  type: OneCycleLR
-  parameters:
-    pct_start: 0.3
-    anneal_strategy: cos
+  OneCycleLR:
+      pct_start: 0.3
+      anneal_strategy: cos
 
-early_stopping: 
-  parameters:
+early_stopping:
     patience: 3
     min_delta: 0.0001
 
