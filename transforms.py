@@ -6,6 +6,7 @@ import numpy as np
 from functools import partial
 from transformers import ASTFeatureExtractor
 import torch.nn.functional as F
+from torchvision.transforms import Compose
 
 class OneHotEncode:
     def __init__(self, c):
@@ -148,5 +149,19 @@ class PadCutToLength:
         if seq_len < self.max_length:
             diff = self.max_length - seq_len
             return F.pad(spec, (0,diff), mode="constant", value=0)
+
+class CustomFeatureExtractor:
+  
+    def __init__(self, sample_rate, n_mels, hop_length, n_fft, max_length, mean, std):
+        self.extract = Compose([
+            Preemphasis(),
+            Spectrogram(sample_rate=sample_rate, n_mels=n_mels, hop_length=hop_length, n_fft=n_fft),
+            LogTransform(),
+            PadCutToLength(max_length=max_length),
+            Normalize(mean=mean, std=std)
+        ])
+    
+    def __call__(self, x):
+        return self.extract(x)
 
     

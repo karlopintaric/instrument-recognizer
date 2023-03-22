@@ -28,41 +28,27 @@ parameters:
   # Transforms applied on raw audio after preprocessing
   transforms:
     parameters:
-      Preemphasis:
-        value: 
-          null
-    
-      Spectrogram:
+      CustomFeatureExtractor:
         parameters:
           sample_rate: 
-            value:
-              22050
-          n_mels: 
-            values: [128, 96, 64]
-          hop_length:
-            values: [64, 128, 256, 512]
-          n_fft:
-            values: [512, 1024, 2048]
-      
-      LogTransform:
-        value:
-          null
-
-      PadCutToLength:
-        parameters:
-          max_length: 
-            value:
-              1024
-      
-      Normalize:
-        parameters:
-          mean: 
-            value:
-              -4.2677393
-          std: 
-            value:
-              9.1379948
-
+              value:
+                22050
+            n_mels: 
+              values: [128, 96, 64]
+            hop_length:
+              values: [64, 128, 256, 512]
+            n_fft:
+              values: [512, 1024, 2048]
+            max_length: 
+              value:
+                1024
+            mean: 
+              value:
+                -4.2677393
+            std: 
+              value:
+                9.1379948
+                
   # Augmentations for spectrograms
   signal_augments:
     value:
