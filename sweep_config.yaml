@@ -28,9 +28,9 @@ parameters:
   # Transforms applied on raw audio after preprocessing
   transforms:
     parameters:
-      CustomFeatureExtractor:
+      FeatureExtractor:
         parameters:
-          sampling_rate:
+          sr:
             value:
               16000
 
@@ -41,7 +41,7 @@ parameters:
         parameters:
           max_repeats:
             distribution: int_uniform
-            min: 0
+            min: 2
             max: 5
 
   spec_augments:

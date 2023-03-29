@@ -137,16 +137,16 @@ def LLRD(config, model):
     # initialize lrs for every layer
     #num_layers = model.config.num_hidden_layers
     model_type = "audio_spectrogram_transformer"
-    layers = [getattr(model.model, model_type).embeddings] + list(getattr(model.model, model_type).encoder.layer)
+    layers = [getattr(model.module.model, model_type).embeddings] + list(getattr(model.module.model, model_type).encoder.layer)
     layers.reverse()
-    lr = config.base_lr
-    weigth_decay = config.weigth_decay
+    lr = config["base_lr"]
+    weight_decay = config["weight_decay"]
     for layer in layers:
-        lr *= config.lr_decay_rate
+        lr *= config["lr_decay_rate"]
         optimizer_grouped_parameters += [
             {
                 "params": [p for n, p in layer.named_parameters() if not any(nd in n for nd in no_decay)],
-                "weight_decay": weigth_decay,
+                "weight_decay": weight_decay,
                 "lr": lr,
             },
             {

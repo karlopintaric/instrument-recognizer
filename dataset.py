@@ -71,7 +71,7 @@ def get_loader(config, subset):
                        preprocess=init_obj(config.preprocess, transform_module),
                        transforms=init_obj(config.transforms, transform_module),
                        signal_augments=init_transforms(config.signal_augments, transform_module),
-                       spec_augments=init_transforms(config.spec_augments, torchaudio.transforms),
+                       spec_augments=init_transforms(config.spec_augments, transform_module),
                        subset=subset)
 
     return DataLoader(dst, batch_size=config.batch_size, 

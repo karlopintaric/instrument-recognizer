@@ -167,25 +167,25 @@ class CustomFeatureExtractor:
 
 class RepeatAudio:
 
-    def __init__(self, max_repeats: int):
+    def __init__(self, max_repeats: int=2):
         self.max_repeats = max_repeats
 
     def __call__(self, signal):
-        num_repeats = torch.randint(0, self.max_repeats, (1,)).item()
-        return signal.repeat(num_repeats)
+        num_repeats = torch.randint(1, self.max_repeats, (1,)).item()
+        return signal.repeat(1, num_repeats)
 
 class MaskFrequency:
 
-    def __init__(self, max_mask_len):
-        self.aug = FrequencyMasking(max_mask_len)
+    def __init__(self, max_mask_length: int=0):
+        self.aug = FrequencyMasking(max_mask_length)
     
     def __call__(self, spec):
         return self.aug(spec)
 
 class MaskTime:
     
-    def __init__(self, max_mask_len):
-        self.aug = TimeMasking(max_mask_len)
+    def __init__(self, max_mask_length: int=0):
+        self.aug = TimeMasking(max_mask_length)
     
     def __call__(self, spec):
         return self.aug(spec)
