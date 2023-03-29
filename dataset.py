@@ -5,7 +5,7 @@ import torch, torchaudio
 import torchvision.transforms
 from torch.nn.utils.rnn import pad_sequence
 import transforms as transform_module
-from utils import init_obj, init_obj
+from utils import init_obj, init_obj, init_transforms
 
 class IRMASDataset(Dataset):
     
@@ -70,8 +70,8 @@ def get_loader(config, subset):
     dst = IRMASDataset(config.train_dir if subset=="train" else config.valid_dir,
                        preprocess=init_obj(config.preprocess, transform_module),
                        transforms=init_obj(config.transforms, transform_module),
-                       signal_augments=init_obj(config.signal_augments, transform_module),
-                       spec_augments=init_obj(config.spec_augments, torchaudio.transforms),
+                       signal_augments=init_transforms(config.signal_augments, transform_module),
+                       spec_augments=init_transforms(config.spec_augments, torchaudio.transforms),
                        subset=subset)
 
     return DataLoader(dst, batch_size=config.batch_size, 

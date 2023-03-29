@@ -3,14 +3,14 @@
 # Sweep config
 method: bayes
 metric:
-  name: mean_average_precision
+  name: mAP
   goal: maximize
 
 # Dataloader settings
 parameters:
   train_dir:
     value:
-      ./data/processed_22khz/all_sync/IRMAS_Training_Data
+      ./data/processed/all_sync/IRMAS_Training_Data
 
   valid_dir: 
     value:
@@ -23,40 +23,42 @@ parameters:
         parameters:
           target_sr: 
             value:
-              22050
+              16000
 
   # Transforms applied on raw audio after preprocessing
   transforms:
     parameters:
       CustomFeatureExtractor:
         parameters:
-          sample_rate: 
+          sampling_rate:
             value:
-              22050
-          n_mels: 
-            value:
-              128
-          hop_length:
-            values: [64, 128, 256, 512]
-          n_fft:
-            values: [512, 1024, 2048]
-          max_length: 
-            value:
-              1024
-          mean: 
-            value:
-              -4.2677393
-          std: 
-            value:
-              9.1379948
-                
+              16000
+
   # Augmentations for spectrograms
   signal_augments:
-    value:
-      null
+    parameters:
+      RepeatAudio:
+        parameters:
+          max_repeats:
+            distribution: int_uniform
+            min: 0
+            max: 5
+
   spec_augments:
-    value:
-      null
+    parameters:
+      MaskFrequency:
+        parameters:
+          max_mask_length:
+            distribution: int_uniform
+            min: 0
+            max: 30
+      
+      MaskTime:
+        parameters:
+          max_mask_length:
+            distribution: int_uniform
+            min: 0
+            max: 200
 
   batch_size: 
     value:
@@ -79,26 +81,29 @@ parameters:
     parameters:
       AdamW:
         parameters:
+          lr:
+            distribution: log_uniform_values
+            min: 1.0E-5
+            max: 1.0E-2
           weight_decay:
-            distribution: log_uniform_values
-            min: 1.0E-8
-            max: 1.0E-1
-
+            value: 0
   
-  learning_rates:
+  LLRD:
     parameters:
-      base_model:
-        parameters:
-          lr: 
-            distribution: log_uniform_values
-            min: 1.0E-8
-            max: 1.0E-5
-      classifier:
-        parameters:
-          lr: 
-            distribution: log_uniform_values
-            min: 1.0E-4
-            max: 1.0E-1
+      base_lr:
+        distribution: log_uniform_values
+        min: 1.0E-7
+        max: 1.0E-3
+
+      lr_decay_rate:
+        distribution: uniform
+        min: 0.5
+        max: 0.99
+
+      weight_decay:
+        distribution: log_uniform_values
+        min: 1.0E-8
+        max: 1.0E-2
 
   # Gradient accumulation
   num_accum: 
@@ -106,29 +111,15 @@ parameters:
 
   EPOCHS: 
     distribution: int_uniform
-    min: 1
-    max: 8
+    min: 2
+    max: 10
     
   scheduler:
     parameters:
-      OneCycleLR:
+      CosineAnnealingLR:
         parameters:
-          pct_start: 
-            distribution: uniform
-            min: 0
-            max: 0.5
-          anneal_strategy: 
-            value:
-              cos
-
-  early_stopping: 
-    parameters:
-      patience: 
-        value:
-          20
-      min_delta: 
-        value:
-          0.0001
+          eta_min:
+            value: 0
 
   save_best_model: 
     value:
@@ -142,8 +133,13 @@ parameters:
     value:
     - hamming_score 
     - zero_one_score
-    - mean_average_precision
+    - mAP
     - mean_f1_score
+
+early_terminate:
+  type: hyperband
+  eta: 2
+  min_iter: 3
 
 
 

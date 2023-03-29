@@ -130,6 +130,34 @@ def diff_lr_old(config, model):
     
     return parameters
 
+def LLRD(config, model):
+    config = config.LLRD
+    optimizer_grouped_parameters = []
+    no_decay = ["bias", "layernorm"]
+    # initialize lrs for every layer
+    #num_layers = model.config.num_hidden_layers
+    model_type = "audio_spectrogram_transformer"
+    layers = [getattr(model.model, model_type).embeddings] + list(getattr(model.model, model_type).encoder.layer)
+    layers.reverse()
+    lr = config.base_lr
+    weigth_decay = config.weigth_decay
+    for layer in layers:
+        lr *= config.lr_decay_rate
+        optimizer_grouped_parameters += [
+            {
+                "params": [p for n, p in layer.named_parameters() if not any(nd in n for nd in no_decay)],
+                "weight_decay": weigth_decay,
+                "lr": lr,
+            },
+            {
+                "params": [p for n, p in layer.named_parameters() if any(nd in n for nd in no_decay)],
+                "weight_decay": 0.0,
+                "lr": lr,
+            },
+        ]
+    
+    return optimizer_grouped_parameters
+
 def diff_lr(config, model):
     parameters = []
     param_dict = config.learning_rates

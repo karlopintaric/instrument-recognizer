@@ -61,8 +61,8 @@ def create_pretrained_model(model_name, num_classes, dropout):
 class ASTPretrained(nn.Module):
     def __init__(self, n_classes: int):
         super().__init__()
-        self.model = freeze(ASTForAudioClassification.from_pretrained("MIT/ast-finetuned-audioset-10-10-0.4593"))
-        fc_in = model.classifier.dense.in_features
+        self.model = ASTForAudioClassification.from_pretrained("MIT/ast-finetuned-audioset-10-10-0.4593")
+        fc_in = self.model.classifier.dense.in_features
         self.model.classifier.dense = nn.Linear(fc_in, n_classes)
     
     def forward(self, x):

@@ -8,7 +8,7 @@ import numpy as np
 import wandb
 import metrics as metrics_module
 import loss
-from utils import init_obj, freeze, unfreeze, diff_lr
+from utils import init_obj, freeze, unfreeze, diff_lr, LLRD
 import numpy as np
 
 class Learner():
@@ -21,17 +21,15 @@ class Learner():
         self.config = config
         
         self.loss_fn = init_obj(self.config.loss, loss)
-        params = diff_lr(self.config, self.model)
+        params = LLRD(self.config, self.model)
         self.optimizer = init_obj(self.config.optimizer, optim, params)
         self.scheduler = init_obj(self.config.scheduler, optim.lr_scheduler, 
                                   self.optimizer, 
-                                  max_lr=[param["lr"] for param in params], 
-                                  epochs=self.config.EPOCHS, 
-                                  steps_per_epoch=int(np.ceil(len(self.train_dl)/self.config.num_accum)))
+                                  T_max= self.config.EPOCHS,
+                                  )
         
         self.verbose = self.config.verbose
         self.metrics = MetricTracker(self.config.metrics, self.verbose)
-        self.early_stop = EarlyStopping(**self.config.early_stopping)
         self.scaler = torch.cuda.amp.GradScaler()
         
         self.train_step = 0
@@ -61,11 +59,6 @@ class Learner():
                 if val_loss < best_val_loss:
                     best_val_loss = val_loss
                     torch.save(self.model.state_dict(), f"{model_name}.pth")
-            
-            if self.early_stop(val_loss):
-                print(f'\nNo change in validation loss since epoch {epoch+1-self.early_stop.counter}\n'
-                    f'Early stopping...')
-                break
 
 
     def _train_epoch(self):

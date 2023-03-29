@@ -17,7 +17,7 @@ def per_instr_f1_score(preds, targets):
     preds = (preds > optimize_threshold(preds, targets)).astype(float)
     return f1_score(targets, preds, average=None, zero_division=0)
 
-def mean_average_precision(preds, targets):
+def mAP(preds, targets):
     return average_precision_score(targets, preds, average="samples")
 
 def LRAP(preds, targets):
