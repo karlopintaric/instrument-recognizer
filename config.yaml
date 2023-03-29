@@ -1,88 +1,77 @@
-# Configuration for the trainer
----
 
-# Dataloader settings
-train_dir: ./data/raw/IRMAS_Training_Data
+train_dir:
+    ./data/raw/IRMAS_Training_Data
 
-valid_dir: ./data/raw/IRMAS_Validation_Data
+valid_dir:
+    ./data/raw/IRMAS_Validation_Data
 
 # Preprocessing done on raw audio
-preprocess: 
-  
+preprocess:
   PreprocessPipeline:
-    target_sr: 22050
+    target_sr: 
+      16000
 
 # Transforms applied on raw audio after preprocessing
 transforms:
-  
-  Preemphasis:
-  
-  Spectrogram:
-      sample_rate: 22050
-      n_mels: 128
-      hop_length: 160
-      n_fft: 800
-  
-  LogTransform:
-  
-  PadCutToLength:
-      max_length: 1024
-  
-  Normalize:
-      mean: -4.2677393
-      std: 9.1379948
+  FeatureExtractor:
+    sr:
+      16000
 
 # Augmentations for spectrograms
 signal_augments:
-spec_augments:
+  RepeatAudio:
+    max_repeats: 5
 
-batch_size: 8
+spec_augments:
+  
+  MaskFrequency:
+    max_mask_length: 30
+    
+  MaskTime:
+    max_mask_length: 192
+
+batch_size:
+    8
 
 # Training settings
-model_name: "MIT/ast-finetuned-audioset-10-10-0.4593"
+
 
 loss:
   FocalLoss:
-      alpha: 0.25
-      gamma: 2
+    alpha: 0.25
+    gamma: 2
+
 
 optimizer:
-  
   AdamW:
-      weight_decay: 1.0E-4
+    lr: 1.0E-3
+    weight_decay: 0
 
-learning_rates:
-  
-  base_model:
-      lr: 1.0E-8
-  classifier:
-      lr: 1.0E-3
+LLRD:
+  base_lr: 1.0E-3
+  lr_decay_rate: 0.9
+  weight_decay: 1.0E-6
 
 # Gradient accumulation
-num_accum: 2
+num_accum: 4
 
-verbose: True
-
-EPOCHS: 4
-
-metrics: 
-- hamming_score 
-- zero_one_score
-- mean_average_precision
-- mean_f1_score
-
-
-scheduler:
+EPOCHS: 5
   
-  OneCycleLR:
-      pct_start: 0.3
-      anneal_strategy: cos
+scheduler:
+  CosineAnnealingLR:
+    eta_min: 0
 
-early_stopping:
-    patience: 3
-    min_delta: 0.0001
+save_best_model:
+  True
 
-save_best_model: True
+verbose:
+  True
+
+metrics:
+  - hamming_score 
+  - zero_one_score
+  - mAP
+  - mean_f1_score
 
 
 

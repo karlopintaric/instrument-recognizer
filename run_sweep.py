@@ -16,10 +16,10 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 np.random.seed(SEED)
 
-def main():
+def main(config):
     
-    wandb.init()
-    config = wandb.config
+    #wandb.init(config=config)
+    #config = wandb.config
     train_dl = get_loader(config, subset="train")
     valid_dl = get_loader(config, subset="valid")
     
@@ -31,10 +31,11 @@ def main():
 
 if __name__=="__main___":
 
-    CONFIG_PATH = "./sweep_config.yaml"
+    CONFIG_PATH = "./config.yaml"
     with open(CONFIG_PATH) as file:
         config = yaml.safe_load(file)
+    main(config)
     
-    sweep_id = wandb.sweep(sweep=config)
-    wandb.agent(sweep_id, function=main, count=1)
+    #sweep_id = wandb.sweep(sweep=config)
+    #wandb.agent(sweep_id, function=main, count=1)
     a=1

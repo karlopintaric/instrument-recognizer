@@ -79,3 +79,12 @@ def get_loader(config, subset):
                       pin_memory=True if torch.cuda.is_available() else False, 
                       num_workers=torch.get_num_threads(),
                       collate_fn=collate_fn)
+
+if __name__=="__main__":
+
+    import yaml
+    from utils import parse_config
+    config = parse_config("config.yaml")
+    dl = get_loader(config, subset="train")
+    sample, _ = next(iter(dl))
+    a=1
