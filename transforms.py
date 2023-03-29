@@ -103,7 +103,7 @@ class FeatureExtractor:
         self.transform = partial(ASTFeatureExtractor(), sampling_rate=sr, return_tensors="pt")
     
     def __call__(self, signal):
-        return self.transform(signal.squeeze()).input_values.squeeze()
+        return self.transform(signal.squeeze()).input_values.mT
     
 class Preemphasis:
     """perform preemphasis on the input signal.
