@@ -81,10 +81,6 @@ parameters:
     parameters:
       AdamW:
         parameters:
-          lr:
-            distribution: log_uniform_values
-            min: 1.0E-5
-            max: 1.0E-2
           weight_decay:
             value: 0
   
@@ -97,8 +93,8 @@ parameters:
 
       lr_decay_rate:
         distribution: uniform
-        min: 0.5
-        max: 0.99
+        min: 0.75
+        max: 1.0
 
       weight_decay:
         distribution: log_uniform_values
@@ -107,7 +103,7 @@ parameters:
 
   # Gradient accumulation
   num_accum: 
-    values: [2, 4, 6, 8]
+    value: 4
 
   EPOCHS: 
     distribution: int_uniform

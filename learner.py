@@ -25,7 +25,7 @@ class Learner():
         self.optimizer = init_obj(self.config.optimizer, optim, params)
         self.scheduler = init_obj(self.config.scheduler, optim.lr_scheduler, 
                                   self.optimizer, 
-                                  T_max= self.config.EPOCHS,
+                                  T_max= (self.config.EPOCHS*len(train_dl))/config.num_accum,
                                   )
         
         self.verbose = self.config.verbose
