@@ -187,11 +187,12 @@ class IRMASPreprocessor:
 
         sound_files = list(self.base_dir.glob("**/*.wav"))
 
-        output = Parallel(n_jobs=n_jobs) \
+        output = Parallel(n_jobs=1) \
                     (delayed(self._get_file_info) \
                     (str(path)) for path in tqdm(sound_files))
         
-        cols = ["path", "pitch", "bpm", "onset", "sample_rate", "duration", "channels"]
+        #cols = ["path", "pitch", "bpm", "onset", "sample_rate", "duration", "channels"]
+        cols = ["path", "sample_rate", "duration", "channels"]
         df = pd.DataFrame(data=output, columns=cols)
 
         df["fname"] = df.path.map(lambda x: Path(x).stem)
@@ -211,12 +212,12 @@ class IRMASPreprocessor:
         channels = signal.shape[0]
         
         signal = librosa.to_mono(signal)
-        pitch = self._get_pitch(signal, sr)
-        bpm = self._get_bpm(signal, sr)
-        onset = self._get_onset(signal, sr)
+        #pitch = self._get_pitch(signal, sr)
+        #bpm = self._get_bpm(signal, sr)
+        #onset = self._get_onset(signal, sr)
         duration = len(signal) / sr
 
-        return path, pitch, bpm, onset, sr, duration, channels
+        return path, sr, duration, channels
     
     def _load_raw_file(self, path):
         return librosa.load(path, sr=None, mono=False)
