@@ -1,0 +1,56 @@
+{
+    "os": "Linux-5.10.16.3-microsoft-standard-WSL2-x86_64-with-glibc2.31",
+    "python": "3.10.9",
+    "heartbeatAt": "2023-03-22T13:30:39.424267",
+    "startedAt": "2023-03-22T13:30:07.582415",
+    "docker": null,
+    "cuda": null,
+    "args": null,
+    "state": "running",
+    "program": "<python with no main file>",
+    "git": {
+        "remote": "https://github.com/karlopintaric/lumen-irmas.git",
+        "commit": "463f557c3f221a106c3455b5835036906cbee36f"
+    },
+    "email": "k.pintaric1998@gmail.com",
+    "root": "/home/kpintaric/lumen-irmas",
+    "host": "DESKTOP-SKTAJVT",
+    "username": "kpintaric",
+    "executable": "/home/kpintaric/lumen-irmas/venv/bin/python",
+    "cpu_count": 2,
+    "cpu_count_logical": 4,
+    "cpu_freq": {
+        "current": 2304.0,
+        "min": 0.0,
+        "max": 0.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 2304.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2304.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2304.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2304.0,
+            "min": 0.0,
+            "max": 0.0
+        }
+    ],
+    "disk": {
+        "total": 250.98248672485352,
+        "used": 27.365924835205078
+    },
+    "memory": {
+        "total": 6.122367858886719
+    }
+}

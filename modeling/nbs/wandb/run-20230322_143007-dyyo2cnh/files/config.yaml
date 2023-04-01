@@ -1,0 +1,158 @@
+wandb_version: 1
+
+_wandb:
+  desc: null
+  value:
+    cli_version: 0.14.0
+    framework: huggingface
+    huggingface_version: 4.27.2
+    is_jupyter_run: true
+    is_kaggle_kernel: false
+    python_version: 3.10.9
+    start_time: 1679491807.59944
+    t:
+      1:
+      - 1
+      - 11
+      - 49
+      - 55
+      2:
+      - 1
+      - 11
+      - 49
+      - 55
+      3:
+      - 2
+      - 16
+      - 23
+      4: 3.10.9
+      5: 0.14.0
+      6: 4.27.2
+      8:
+      - 1
+      - 5
+method:
+  desc: null
+  value: bayes
+metric:
+  desc: null
+  value:
+    goal: minimize
+    name: val_loss
+parameters:
+  desc: null
+  value:
+    EPOCHS:
+      distribution: int_uniform
+      max: 7
+      min: 1
+    batch_size:
+      value: 8
+    early_stopping:
+      parameters:
+        min_delta:
+          value: 0.0001
+        patience:
+          value: 3
+    learning_rates:
+      base_model:
+        parameters:
+          lr:
+            distribution: log_uniform_values
+            max: 1.0e-05
+            min: 1.0e-08
+      classifier:
+        parameters:
+          lr:
+            distribution: log_uniform_values
+            max: 0.1
+            min: 0.0001
+    loss:
+      FocalLoss:
+        parameters:
+          alpha:
+            values:
+            - -1
+            - 0.25
+            - 0.5
+            - 0.75
+          gamma:
+            values:
+            - 1
+            - 2
+            - 3
+    metrics:
+      value:
+      - hamming_score
+      - zero_one_score
+      - mean_average_precision
+      - mean_f1_score
+    num_accum:
+      values:
+      - 4
+      - 6
+      - 8
+    optimizer:
+      AdamW:
+        parameters:
+          weight_decay:
+            distribution: log_uniform_values
+            max: 0.1
+            min: 1.0e-07
+    preprocess:
+      PreprocessPipeline:
+        parameters:
+          target_sr:
+            value: 22050
+    save_best_model:
+      value: true
+    scheduler:
+      OneCycleLR:
+        parameters:
+          anneal_strategy:
+            value: cos
+          pct_start:
+            distribution: uniform
+            max: 0.5
+            min: 0
+    train_dir:
+      value: ./data/processed/all_sync/IRMAS_Training_Data
+    transforms:
+      LogTransform:
+        value: null
+      Normalize:
+        parameters:
+          mean:
+            value: -4.2677393
+          std:
+            value: 9.1379948
+      PadCutToLength:
+        parameters:
+          max_length:
+            value: 1024
+      Preemphasis:
+        value: null
+      Spectrogram:
+        parameters:
+          hop_length:
+            values:
+            - 64
+            - 128
+            - 256
+            - 512
+          n_fft:
+            values:
+            - 512
+            - 1024
+            - 2048
+          n_mels:
+            values:
+            - 128
+            - 96
+            - 64
+          sample_rate:
+            value: 22050
+    valid_dir:
+      value: ./data/raw/IRMAS_Validation_Data
+    verbose:
+      value: true

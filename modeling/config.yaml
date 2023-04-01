@@ -1,0 +1,82 @@
+
+train_dir:
+    ./data/raw/IRMAS_Training_Data
+
+valid_dir:
+    ./data/raw/IRMAS_Validation_Data
+
+# Preprocessing done on raw audio
+preprocess:
+  PreprocessPipeline:
+    target_sr: 
+      16000
+
+# Transforms applied on raw audio after preprocessing
+transforms:
+  FeatureExtractor:
+    sr:
+      16000
+
+# Augmentations for spectrograms
+signal_augments:
+  RepeatAudio:
+    max_repeats: 5
+
+spec_augments:
+  
+  MaskFrequency:
+    max_mask_length: 30
+    
+  MaskTime:
+    max_mask_length: 192
+
+batch_size:
+    8
+
+# Training settings
+
+
+loss:
+  FocalLoss:
+    alpha: 0.25
+    gamma: 2
+
+
+optimizer:
+  AdamW:
+    lr: 1.0E-3
+    weight_decay: 0
+
+LLRD:
+  base_lr: 1.0E-3
+  lr_decay_rate: 0.9
+  weight_decay: 1.0E-6
+
+# Gradient accumulation
+num_accum: 4
+
+EPOCHS: 5
+  
+scheduler:
+  CosineAnnealingLR:
+    eta_min: 0
+
+save_best_model:
+  True
+
+verbose:
+  True
+
+metrics:
+  - hamming_score 
+  - zero_one_score
+  - mAP
+  - mean_f1_score
+
+
+
+
+
+
+
+

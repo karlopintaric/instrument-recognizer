@@ -42,7 +42,7 @@ parameters:
           max_repeats:
             distribution: int_uniform
             min: 2
-            max: 6
+            max: 5
 
   spec_augments:
     parameters:

@@ -7,8 +7,8 @@ from tqdm.autonotebook import tqdm
 from joblib import Parallel, delayed
 import pandas as pd
 import warnings
-from utils import extract_from_df
-from transforms import LabelsFromTxt, ParentMultilabel
+from modeling.utils import extract_from_df
+from modeling.transforms import LabelsFromTxt, ParentMultilabel
 
 
 class IRMASPreprocessor:
@@ -187,12 +187,11 @@ class IRMASPreprocessor:
 
         sound_files = list(self.base_dir.glob("**/*.wav"))
 
-        output = Parallel(n_jobs=1) \
+        output = Parallel(n_jobs=n_jobs) \
                     (delayed(self._get_file_info) \
                     (str(path)) for path in tqdm(sound_files))
         
-        #cols = ["path", "pitch", "bpm", "onset", "sample_rate", "duration", "channels"]
-        cols = ["path", "sample_rate", "duration", "channels"]
+        cols = ["path", "pitch", "bpm", "onset", "sample_rate", "duration", "channels"]
         df = pd.DataFrame(data=output, columns=cols)
 
         df["fname"] = df.path.map(lambda x: Path(x).stem)
@@ -212,12 +211,12 @@ class IRMASPreprocessor:
         channels = signal.shape[0]
         
         signal = librosa.to_mono(signal)
-        #pitch = self._get_pitch(signal, sr)
-        #bpm = self._get_bpm(signal, sr)
-        #onset = self._get_onset(signal, sr)
+        pitch = self._get_pitch(signal, sr)
+        bpm = self._get_bpm(signal, sr)
+        onset = self._get_onset(signal, sr)
         duration = len(signal) / sr
 
-        return path, sr, duration, channels
+        return path, pitch, bpm, onset, sr, duration, channels
     
     def _load_raw_file(self, path):
         return librosa.load(path, sr=None, mono=False)
