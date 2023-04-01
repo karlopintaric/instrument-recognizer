@@ -129,10 +129,10 @@ dmypy.json
 .pyre/
 
 # data folder
-data/
+modeling/data/
 
 # wandb
-wandb/
+modeling/wandb/
 
 # temp models
-model.pth
+modeling/model.pth
