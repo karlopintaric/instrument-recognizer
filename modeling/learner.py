@@ -23,8 +23,10 @@ class Learner():
         params = LLRD(self.config, self.model)
         self.optimizer = init_obj(self.config.optimizer, optim, params)
         self.scheduler = init_obj(self.config.scheduler, optim.lr_scheduler, 
-                                  self.optimizer, 
-                                  T_max = (self.config.EPOCHS*len(train_dl))/config.num_accum)
+                                  self.optimizer,
+                                  max_lr = [param["lr"] for param in params], 
+                                  total_steps = np.ceil((self.config.EPOCHS*len(train_dl))/config.num_accum),
+                                  epochs = self.config.EPOCHS)
         
         self.verbose = self.config.verbose
         self.metrics = MetricTracker(self.config.metrics, self.verbose)
@@ -33,7 +35,7 @@ class Learner():
         self.train_step = 0
         self.test_step = 0
         
-    def fit(self, epochs: int, lr: float=None, model_name: str="model"):
+    def fit(self, epochs: int=None, lr: float=None, model_name: str="model"):
          
         best_val_loss = np.inf
         loop = tqdm(range(self.config.EPOCHS), leave=False)

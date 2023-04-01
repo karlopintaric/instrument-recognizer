@@ -7,6 +7,8 @@ from functools import partial
 from transformers import ASTFeatureExtractor
 import torch.nn.functional as F
 from torchvision.transforms import Compose
+from audiomentations import TimeMask, RoomSimulator
+from audiomentations import Compose as AudioCompose
 from torchaudio.transforms import FrequencyMasking, TimeMasking
 
 class OneHotEncode:
@@ -49,7 +51,7 @@ class PreprocessPipeline(nn.Module):
         signal, sr = torchaudio.load(path)
         signal = self._resample(signal, sr)
         signal = self._mix_down(signal)
-        return signal
+        return signal.numpy()
     
     def _mix_down(self, signal):
         if signal.shape[0] > 1:
@@ -173,7 +175,7 @@ class RepeatAudio:
 
     def __call__(self, signal):
         num_repeats = torch.randint(1, self.max_repeats, (1,)).item()
-        return signal.repeat(1, num_repeats)
+        return np.tile(signal, reps=num_repeats)
 
 class MaskFrequency:
 
@@ -190,3 +192,16 @@ class MaskTime:
     
     def __call__(self, spec):
         return self.aug(spec)
+
+class Audiomentations:
+
+    def __init__(self, p, max_repeats, max_time_mask):
+        self.room_sim = RoomSimulator(p=p)
+        self.time_mask = TimeMask(max_band_part=max_time_mask, p=p)
+        self.repeats = RepeatAudio(max_repeats)
+    
+    def __call__(self, audio, sr):
+        audio = self.repeats(audio)
+        audio = self.room_sim(audio, sample_rate=sr)
+        audio = self.time_mask(audio, sample_rate=sr)
+        return audio

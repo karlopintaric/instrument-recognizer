@@ -1,20 +1,26 @@
-from modeling.transforms import PreprocessPipeline, LabelsFromTxt, OneHotEncode, ParentMultilabel
+from utils import get_wav_files, CLASSES
+from transforms import PreprocessPipeline, LabelsFromTxt, OneHotEncode, ParentMultilabel
 from torch.utils.data import Dataset, DataLoader
 import torch, torchaudio
 import torchvision.transforms
 from torch.nn.utils.rnn import pad_sequence
-import modeling.transforms as transform_module
-from modeling.utils import init_obj, init_obj, init_transforms, get_wav_files, CLASSES
+import transforms as transform_module
+from utils import init_obj, init_obj, init_transforms
+from pathlib import Path
+import numpy as np
 
 class IRMASDataset(Dataset):
     
     def __init__(self, audio_dir, preprocess=None, signal_augments=None, transforms=None, spec_augments=None, subset="train"):
         self.files = get_wav_files(audio_dir)
         self.subset = subset
+        
+        if self.subset != "train":
+            test_songs = np.loadtxt("test_songs.txt", dtype=str, ndmin=1, delimiter="\n")
         if self.subset=="valid":
-            self.files = sorted(self.files)[:len(self.files)//2]
+            self.files = [file for file in self.files if Path(file).stem not in test_songs]
         if self.subset=="test":
-            self.files = sorted(self.files)[len(self.files)//2:]
+            self.files = [file for file in self.files if Path(file).stem in test_songs]
 
         self.preprocess = preprocess
         self.transforms = transforms
@@ -42,7 +48,7 @@ class IRMASDataset(Dataset):
         label = target_transforms(sample_path)
         
         if self.signal_augments is not None:
-            signal = self.signal_augments(signal)
+            signal = self.signal_augments(signal, self.preprocess.target_sr)
         
         if self.transforms is not None:
             signal = self.transforms(signal)

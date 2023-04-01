@@ -37,28 +37,28 @@ parameters:
   # Augmentations for spectrograms
   signal_augments:
     parameters:
-      RepeatAudio:
+      
+      Audiomentations:
         parameters:
-          max_repeats:
+          p:
+            values: [0.5, 0.75, 1.0]
+          max_repeats: 
             distribution: int_uniform
-            min: 2
-            max: 5
-
+            min: 3
+            max: 6 
+          max_time_mask:
+            distribution: uniform
+            min: 0.1
+            max: 0.5
+      
   spec_augments:
     parameters:
       MaskFrequency:
         parameters:
           max_mask_length:
             distribution: int_uniform
-            min: 0
+            min: 10
             max: 30
-      
-      MaskTime:
-        parameters:
-          max_mask_length:
-            distribution: int_uniform
-            min: 0
-            max: 200
 
   batch_size: 
     value:
@@ -88,7 +88,7 @@ parameters:
     parameters:
       base_lr:
         distribution: log_uniform_values
-        min: 1.0E-7
+        min: 5.0E-6
         max: 1.0E-3
 
       lr_decay_rate:
@@ -108,14 +108,18 @@ parameters:
   EPOCHS: 
     distribution: int_uniform
     min: 2
-    max: 10
+    max: 8
     
   scheduler:
     parameters:
-      CosineAnnealingLR:
+      OneCycleLR:
         parameters:
-          eta_min:
-            value: 0
+          pct_start:
+            distribution: uniform
+            min: 0.05
+            max: 0.3
+          anneal_strategy:
+            value: cos
 
   save_best_model: 
     value:

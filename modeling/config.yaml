@@ -1,6 +1,6 @@
 
 train_dir:
-    ./data/raw/IRMAS_Training_Data
+    ../data/raw/IRMAS_Training_Data
 
 valid_dir:
     ./data/raw/IRMAS_Validation_Data
@@ -19,16 +19,16 @@ transforms:
 
 # Augmentations for spectrograms
 signal_augments:
-  RepeatAudio:
-    max_repeats: 5
+
+  Audiomentations:
+    p: 0.5
+    max_repeats: 6 
+    max_time_mask: 0.5
 
 spec_augments:
   
   MaskFrequency:
     max_mask_length: 30
-    
-  MaskTime:
-    max_mask_length: 192
 
 batch_size:
     8
@@ -58,8 +58,9 @@ num_accum: 4
 EPOCHS: 5
   
 scheduler:
-  CosineAnnealingLR:
-    eta_min: 0
+  OneCycleLR:
+    pct_start: 0.15
+    anneal_strategy: cos
 
 save_best_model:
   True
