@@ -129,10 +129,12 @@ dmypy.json
 .pyre/
 
 # data folder
-modeling/data/
+data/raw
 
 # wandb
-modeling/wandb/
+backend/wandb/
 
 # temp models
-modeling/model.pth
+backend/model.pth
+
+lumen_2023_workshop-main/

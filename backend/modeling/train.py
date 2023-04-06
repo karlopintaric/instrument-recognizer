@@ -2,10 +2,10 @@ import torch
 import numpy as np
 import wandb
 
-from modeling.utils import parse_config
-from modeling.dataset import get_loader
-from modeling.learner import Learner
-from modeling.models import ASTPretrained, ASTPretrainedBigHead, RNN
+from .src.utils import parse_config
+from .src.dataset import get_loader
+from .src.learner import Learner
+from .src.models import ASTPretrained, ASTPretrainedBigHead, RNN
 
 SEED = 123
 torch.manual_seed(SEED)

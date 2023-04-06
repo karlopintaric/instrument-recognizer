@@ -1,6 +1,6 @@
 
 train_dir:
-    ../data/raw/IRMAS_Training_Data
+    ./data/raw/IRMAS_Training_Data
 
 valid_dir:
     ./data/raw/IRMAS_Validation_Data
@@ -48,7 +48,7 @@ optimizer:
     weight_decay: 0
 
 LLRD:
-  base_lr: 1.0E-3
+  base_lr: 1.0E-4
   lr_decay_rate: 0.9
   weight_decay: 1.0E-6
 
