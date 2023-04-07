@@ -102,11 +102,11 @@ def LLRD(config, model):
 
 class ComposeTransforms:
 
-    def __init__(transforms: list):
-        ransforms = transforms
+    def __init__(self, transforms: list):
+        self.transforms = transforms
 
-    def __call__(input, *args):
-        for t in ransforms:
+    def __call__(self, input, *args):
+        for t in self.transforms:
             input = t(input, *args)
         return input
 

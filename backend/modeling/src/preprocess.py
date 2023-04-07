@@ -28,8 +28,9 @@ def generate_metadata(data_dir: Union[str, Path],
 
     sound_files = list(data_dir.glob("**/*.wav"))
 
-    output = Parallel(n_jobs=n_jobs)(delayed(get_file_info)
-                                     (path, extract_music_features) for path in tqdm(sound_files))
+    for path in tqdm(sound_files):
+        output = get_file_info(path, extract_music_features)
+    #output = Parallel(n_jobs=n_jobs)(delayed(get_file_info)(path, extract_music_features) for path in tqdm(sound_files))
 
     cols = ["path", "pitch", "bpm", "onset",
             "sample_rate", "duration", "channels"]
@@ -39,18 +40,18 @@ def generate_metadata(data_dir: Union[str, Path],
     df["song_name"] = df.fname.str.extract(pattern)
     df["inst"] = df.path.map(lambda x: "-".join(list(label_extractor(x))))
     df["label_count"] = df.inst.map(lambda x: len(x.split("-")))
-    #df = df.drop(columns="path")
+    # df = df.drop(columns="path")
 
-    df.to_csv(f'{save_path}/metadata_{self.subset}.csv', index=False)
+    df.to_csv(f'{save_path}/metadata_{subset}.csv', index=False)
 
     return df
 
 
 class IRMASPreprocessor:
 
-    def __init__(self, metadata: Union[pd.DateFrame, str] = None,
+    def __init__(self, metadata: Union[pd.DataFrame, str] = None,
                  data_dir: Union[str, Path] = None,
-                 sample_rate: int=16000):
+                 sample_rate: int = 16000):
 
         if metadata is not None:
             self.metadata = pd.read_csv(metadata) if isinstance(
@@ -68,10 +69,11 @@ class IRMASPreprocessor:
         self.instruments = self.metadata.inst.unique()
         self.sample_rate = sample_rate
 
-    def preprocess_and_mix(self, save_dir: str, sync: str, sr: int, 
+    def preprocess_and_mix(self, save_dir: str, sync: str, sr: int,
                            ordered: bool, num_track_to_mix: int, n_jobs: int = -2):
 
-        combs = itertools.product(self.instruments, repeat=num_track_to_mix)
+        combs = itertools.combinations(
+            self.instruments, repeat=num_track_to_mix)
 
         if ordered:
             self.metadata = self.metadata.sort_values(by=sync)
@@ -122,11 +124,11 @@ class IRMASPreprocessor:
         cols = ["path", "pitch", "bpm", "onset"]
         files_metadata_df = self.metadata.loc[self.metadata.path.isin(
             files_to_sync)].set_index("path")
-        
+
         num_files = files_metadata_df.shape[0]
         if num_files != len(files_to_sync):
             raise KeyError("File not found in metadata. Please regenerate")
-        
+
         mean_features = files_metadata_df[cols].mean().to_dict()
         metadata_dict = files_metadata_df.to_dict("index")
 
@@ -138,11 +140,11 @@ class IRMASPreprocessor:
                 file_to_sync = librosa.resample(
                     y=file_to_sync, orig_sr=sr_sync, target_sr=self.sample_rate)
 
-            if sync=="bpm":
+            if sync == "bpm":
                 file_to_sync = sync_bpm(
                     file_to_sync, sr_sync, bpm_base=mean_features["bpm"], bpm=features["bpm"])
 
-            if sync=="pitch":
+            if sync == "pitch":
                 file_to_sync = sync_pitch(
                     file_to_sync, sr_sync, pitch_base=mean_features["pitch"], pitch=features["pitch"])
 
@@ -150,35 +152,35 @@ class IRMASPreprocessor:
                 file_to_sync, sr_sync, onset_base=mean_features["onset"], onset=features["onset"])
 
             file_to_sync = librosa.util.normalize(file_to_sync)
-            
-            if i==0:
+
+            if i == 0:
                 mixed_sound = np.zeros_like(file_to_sync)
-            
+
             if mixed_sound.shape[0] > file_to_sync.shape[0]:
                 file_to_sync = np.resize(file_to_sync, mixed_sound.shape)
             else:
                 mixed_sound = np.resize(mixed_sound, file_to_sync.shape)
 
             mixed_sound = mixed_sound + file_to_sync
-        
+
         mixed_sound /= num_files
-        
+
         return librosa.resample(y=mixed_sound, orig_sr=44100, target_sr=self.sample_rate)
 
-    def _create_save_dir(self, insts):
+    def _create_save_dir(self, insts: Union[Tuple[str], List[str]]):
         new_dir_name = '-'.join(insts)
         new_dir_path = os.path.join(self.new_dir, new_dir_name)
         os.makedirs(new_dir_path, exist_ok=True)
         return new_dir_path
 
     @classmethod
-    def from_metadata(cls, metadata_path: str):
+    def from_metadata(cls, metadata_path: str, **kwargs):
         metadata = pd.read_csv(metadata_path)
-        return cls(metadata)
+        return cls(metadata, **kwargs)
 
 
 if __name__ == "__main__":
 
-    data_dir = 'data/raw'
-    IRMASPreprocessor.generate_metadata(data_dir)
+    data_dir = '/home/kpintaric/lumen-irmas/data/raw/IRMAS_Training_Data'
+    generate_metadata(data_dir)
     a = 1
