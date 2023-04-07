@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import timm
-from transformers import ASTForAudioClassification, AutoModel, AutoConfig
+from transformers import ASTForAudioClassification, AutoModel, AutoConfig, ASTModel
 from .utils import freeze
 
 class StudentAST(nn.Module):
@@ -13,57 +13,20 @@ class StudentClassificationHead(nn.Module):
 
 
 class ASTPretrained(nn.Module):
-    def __init__(self, n_classes: int):
+    def __init__(self, n_classes: int, dropout: float):
         super().__init__()
-        self.model = ASTForAudioClassification.from_pretrained(
-            "MIT/ast-finetuned-audioset-10-10-0.4593")
-        fc_in = self.model.classifier.dense.in_features
-        self.model.classifier.dense = nn.Linear(fc_in, n_classes)
-
-    def forward(self, x):
-        x = self.model(x).logits
-        return x
-
-
-class ASTPretrainedSmallHead(nn.Module):
-    def __init__(self, n_classes: int):
-        super().__init__()
-        model = ASTForAudioClassification.from_pretrained(
-            "MIT/ast-finetuned-audioset-10-10-0.4593")
-        fc_in = model.classifier.dense.in_features
-        self.base_model = freeze(nn.Sequential(*list(model.children())[:-1]))
+        self.base_model = ASTModel.from_pretrained("MIT/ast-finetuned-audioset-10-10-0.4593")
+        fc_in = self.base_model.config.hidden_size
 
         self.classifier = nn.Sequential(
-            nn.LayerNorm((768,), eps=1e-12),
+            nn.LayerNorm((fc_in,), eps=1e-12),
+            nn.Dropout(p=dropout),
             nn.Linear(fc_in, n_classes))
 
     def forward(self, x):
         x = self.base_model(x)[1]
         x = self.classifier(x)
         return x
-
-
-class ASTPretrainedBigHead(nn.Module):
-    def __init__(self, n_classes: int, drop_p: list = [0.25, 0.5]):
-        super().__init__()
-        model = ASTForAudioClassification.from_pretrained(
-            "MIT/ast-finetuned-audioset-10-10-0.4593")
-        fc_in = model.classifier.dense.in_features
-        self.base_model = freeze(nn.Sequential(*list(model.children())[:-1]))
-        self.classifier = nn.Sequential(
-            nn.LayerNorm((768,), eps=1e-12),
-            nn.Dropout(drop_p[0]),
-            nn.Linear(fc_in, 512),
-            nn.LayerNorm((512,), eps=1e-12),
-            nn.Dropout(drop_p[1]),
-            nn.Linear(512, n_classes)
-        )
-
-    def forward(self, x):
-        x = self.base_model(x)[1]
-        x = self.classifier(x)
-        return x
-
 
 class RNN(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, num_classes, dropout=[0.1, 0.1]):

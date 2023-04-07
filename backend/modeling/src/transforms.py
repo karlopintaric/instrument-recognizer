@@ -210,17 +210,3 @@ class MaskTime:
 
     def __call__(self, spec):
         return self.aug(spec)
-
-
-class Audiomentations:
-
-    def __init__(self, p, max_repeats, max_time_mask):
-        self.room_sim = RoomSimulator(p=p)
-        self.time_mask = TimeMask(max_band_part=max_time_mask, p=p)
-        self.repeats = RepeatAudio(max_repeats)
-
-    def __call__(self, audio, sr):
-        audio = self.repeats(audio)
-        audio = self.room_sim(audio, sample_rate=sr)
-        audio = self.time_mask(audio, sample_rate=sr)
-        return audio

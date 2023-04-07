@@ -25,11 +25,6 @@ def per_instr_f1_score(preds, targets):
 def mAP(preds, targets):
     return average_precision_score(targets, preds, average="samples")
 
-
-def LRAP(preds, targets):
-    return label_ranking_average_precision_score(targets, preds)
-
-
 def optimize_threshold(preds, targets):
     label_thresholds = np.empty(preds.shape[1])
 
