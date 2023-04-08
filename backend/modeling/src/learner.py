@@ -30,7 +30,7 @@ class BaseLearner(ABC):
 class Learner(BaseLearner):
 
     def __init__(self, train_dl, valid_dl, model, config):
-        super().init(train_dl, valid_dl, model, config)
+        super().__init__(train_dl, valid_dl, model, config)
 
         self.model = torch.nn.DataParallel(self.model)
         self.loss_fn = init_obj(self.config.loss, loss_module)
@@ -39,8 +39,8 @@ class Learner(BaseLearner):
         self.scheduler = init_obj(self.config.scheduler, optim.lr_scheduler,
                                   self.optimizer,
                                   max_lr=[param["lr"] for param in params],
-                                  total_steps=np.ceil(
-                                      (self.config.EPOCHS*len(train_dl))/config.num_accum),
+                                  total_steps=int(np.ceil(
+                                      (self.config.EPOCHS*len(train_dl))/config.num_accum)),
                                   epochs=self.config.EPOCHS)
 
         self.verbose = self.config.verbose
@@ -71,10 +71,8 @@ class Learner(BaseLearner):
                     f'| EPOCH: {epoch+1} | train_loss: {train_loss:.3f} | val_loss: {val_loss:.3f} |\n')
                 self.metrics.display()
 
-            if self.config.save_best_model:
-                if val_loss < best_val_loss:
-                    best_val_loss = val_loss
-                    torch.save(self.model.state_dict(), f"{model_name}.pth")
+       
+        torch.save(self.model.module.state_dict(), f"{model_name}.pth")
 
     def _train_epoch(self):
 
@@ -189,4 +187,4 @@ class MetricTracker:
 
     def display(self):
         for k, v in self.result.items():
-            print(f'{k}: {v:.2f}')
+            print(f'{k}: {v:.2f}', flush=True)

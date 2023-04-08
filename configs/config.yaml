@@ -36,9 +36,9 @@ spec_augments:
       max_mask_length: 27
     MaskTime:
       max_mask_length: 165
-train_dir: /home/kpintaric/lumen-irmas/data/raw/IRMAS_Training_Data
+train_dir: /nfs/home/8548f215c44990b1/lumen-irmas/data/processed/no_sync_two
 transforms:
     FeatureExtractor:
       sr: 16000
-valid_dir: ./data/raw/IRMAS_Validation_Data
+valid_dir: /nfs/home/8548f215c44990b1/lumen-irmas/data/raw/IRTestingData
 verbose: true

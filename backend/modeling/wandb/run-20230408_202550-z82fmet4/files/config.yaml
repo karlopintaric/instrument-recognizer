@@ -1,0 +1,114 @@
+wandb_version: 1
+
+EPOCHS:
+  desc: null
+  value: 4
+LLRD:
+  desc: null
+  value:
+    base_lr: 2.20599946734665e-05
+    lr_decay_rate: 0.8443322714492174
+    weight_decay: 7.831010080797112e-05
+batch_size:
+  desc: null
+  value: 8
+dropout:
+  desc: null
+  value: 0.36569129354477026
+loss:
+  desc: null
+  value:
+    FocalLoss:
+      alpha: 0.5
+      gamma: 3
+metrics:
+  desc: null
+  value:
+  - hamming_score
+  - zero_one_score
+  - mAP
+  - mean_f1_score
+num_accum:
+  desc: null
+  value: 4
+optimizer:
+  desc: null
+  value:
+    AdamW:
+      weight_decay: 0
+preprocess:
+  desc: null
+  value:
+    PreprocessPipeline:
+      target_sr: 16000
+save_best_model:
+  desc: null
+  value: true
+scheduler:
+  desc: null
+  value:
+    OneCycleLR:
+      anneal_strategy: cos
+      pct_start: 0.0543647657802943
+signal_augments:
+  desc: null
+  value:
+    RepeatAudio:
+      max_repeats: 6
+spec_augments:
+  desc: null
+  value:
+    MaskFrequency:
+      max_mask_length: 27
+    MaskTime:
+      max_mask_length: 165
+train_dir:
+  desc: null
+  value: /nfs/home/8548f215c44990b1/lumen-irmas/data/processed/no_sync_two
+transforms:
+  desc: null
+  value:
+    FeatureExtractor:
+      sr: 16000
+valid_dir:
+  desc: null
+  value: /nfs/home/8548f215c44990b1/lumen-irmas/data/raw/IRTestingData
+verbose:
+  desc: null
+  value: true
+_wandb:
+  desc: null
+  value:
+    python_version: 3.10.10
+    cli_version: 0.14.2
+    framework: huggingface
+    huggingface_version: 4.27.4
+    is_jupyter_run: true
+    is_kaggle_kernel: false
+    start_time: 1680985553.950715
+    t:
+      1:
+      - 1
+      - 5
+      - 11
+      - 41
+      - 49
+      - 53
+      - 55
+      2:
+      - 1
+      - 5
+      - 11
+      - 41
+      - 49
+      - 53
+      - 55
+      3:
+      - 16
+      - 23
+      4: 3.10.10
+      5: 0.14.2
+      6: 4.27.4
+      8:
+      - 1
+      - 5

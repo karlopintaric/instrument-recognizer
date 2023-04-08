@@ -73,14 +73,14 @@ def LLRD(config, model):
             "lr": lr,
         },
         {
-            "params": [p for n, p in layer.named_parameters() if any(nd in n for nd in no_decay)],
+            "params": [p for n, p in head_params if any(nd in n for nd in no_decay)],
             "weight_decay": 0.0,
             "lr": lr,
         },
     ]
     # initialize lrs for every layer
-    layers = [model.base_model.embeddings] + \
-        list(model.base_model.encoder.layer)
+    layers = [model.module.base_model.embeddings] + \
+        list(model.module.base_model.encoder.layer)
     layers.reverse()
     for layer in layers:
         lr *= config["lr_decay_rate"]

@@ -19,8 +19,8 @@ class IRMASDataset(Dataset):
         self.subset = subset
 
         if self.subset != "train":
-            test_songs = np.loadtxt(
-                f"data/test_songs.txt", dtype=str, ndmin=1, delimiter="\n")
+            test_songs = np.genfromtxt(
+                f"{audio_dir}/../../test_songs.txt", dtype=str, ndmin=1, delimiter="\n")
         if self.subset == "valid":
             self.files = [file for file in self.files if Path(
                 file).stem not in test_songs]
@@ -54,7 +54,7 @@ class IRMASDataset(Dataset):
         label = target_transforms(sample_path)
 
         if self.signal_augments is not None:
-            signal = self.signal_augments(signal, self.preprocess.target_sr)
+            signal = self.signal_augments(signal)
 
         if self.transforms is not None:
             signal = self.transforms(signal)
