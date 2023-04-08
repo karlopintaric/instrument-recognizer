@@ -139,7 +139,7 @@ def get_onset(signal, sr):
 
 def get_bpm(signal, sr):
     bpm, _ = librosa.beat.beat_track(y=signal, sr=sr)
-    return bpm
+    return bpm if bpm != 0 else None
 
 
 def get_pitch(signal, sr):
@@ -152,7 +152,7 @@ def get_pitch(signal, sr):
     if not np.isnan(pitch).all():
         mean_log_pitch = np.nanmean(np.log(pitch+eps))
     else:
-        mean_log_pitch = -9999
+        mean_log_pitch = None
 
     return mean_log_pitch
 
@@ -179,14 +179,11 @@ def get_file_info(path: Union[str, Path], extract_music_features: bool):
 
 
 def sync_pitch(file_to_sync: np.ndarray, sr: int,
-               pitch_base: float, pitch: float = None):
+               pitch_base: float, pitch: float):
 
     assert np.ndim(file_to_sync) == 1, "Input array has more than one dimensions"
-    
-    if pitch is None:
-        pitch = get_pitch(file_to_sync, sr)
 
-    if (pitch_base == -9999) or (pitch == -9999):
+    if pitch_base is None or pitch is None:
         return file_to_sync
 
     steps = np.round(12 * np.log2(np.exp(pitch_base)/np.exp(pitch)), 0)
@@ -195,30 +192,28 @@ def sync_pitch(file_to_sync: np.ndarray, sr: int,
 
 
 def sync_bpm(file_to_sync: np.ndarray, sr: int,
-             bpm_base: float, bpm: float = None):
+             bpm_base: float, bpm: float):
     
     assert np.ndim(file_to_sync) == 1, "Input array has more than one dimensions"
     
-    if bpm is None:
-        bpm = get_bpm(file_to_sync, sr)
-
-    if (bpm_base == 0) or (bpm == 0):
+    if bpm_base is None or bpm is None:
         return file_to_sync
 
     return librosa.effects.time_stretch(y=file_to_sync, rate=bpm_base/bpm)
 
 
 def sync_onset(file_to_sync: np.ndarray, sr: int,
-               onset_base: float, onset: float = None):
+               onset_base: float, onset: float):
 
     assert np.ndim(file_to_sync) == 1, "Input array has more than one dimensions"
     
-    if onset is None:
-        onset = get_onset(file_to_sync, sr)
+    if onset_base is None or onset is None:
+        return file_to_sync
+    
     diff = int(round(abs(onset_base*sr - onset*sr), 0))
 
     if onset_base > onset:
-        return np.pad(file_to_sync, (diff,), mode="constant", constant_values=0)
+        return np.pad(file_to_sync, (diff,0), mode="constant", constant_values=0)
     else:
         return file_to_sync[diff:]
 

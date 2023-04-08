@@ -28,13 +28,13 @@ def generate_metadata(data_dir: Union[str, Path],
 
     sound_files = list(data_dir.glob("**/*.wav"))
 
-    for path in tqdm(sound_files):
-        output = get_file_info(path, extract_music_features)
-    #output = Parallel(n_jobs=n_jobs)(delayed(get_file_info)(path, extract_music_features) for path in tqdm(sound_files))
+    #for path in tqdm(sound_files):
+    #    output = get_file_info(path, extract_music_features)
+    output = Parallel(n_jobs=n_jobs)(delayed(get_file_info)(path, extract_music_features) for path in tqdm(sound_files))
 
     cols = ["path", "pitch", "bpm", "onset",
             "sample_rate", "duration", "channels"]
-    df = pd.DataFrame(data=output, columns=cols)
+    df = pd.DataFrame(data=output)
 
     df["fname"] = df.path.map(lambda x: Path(x).stem)
     df["song_name"] = df.fname.str.extract(pattern)
@@ -69,38 +69,40 @@ class IRMASPreprocessor:
         self.instruments = self.metadata.inst.unique()
         self.sample_rate = sample_rate
 
-    def preprocess_and_mix(self, save_dir: str, sync: str, sr: int,
+    def preprocess_and_mix(self, save_dir: str, sync: str,
                            ordered: bool, num_track_to_mix: int, n_jobs: int = -2):
 
         combs = itertools.combinations(
-            self.instruments, repeat=num_track_to_mix)
+            self.instruments, r=num_track_to_mix)
 
         if ordered:
             self.metadata = self.metadata.sort_values(by=sync)
         else:
             self.metadata = self.metadata.sample(frac=1)
 
+        #for insts in tqdm(combs):
+        #    self._mix(insts, save_dir, sync)
         Parallel(n_jobs=n_jobs)(delayed(self._mix)
-                                (insts, save_dir, sync, sr) for (insts) in tqdm(combs))
+                                (insts, save_dir, sync) for (insts) in tqdm(combs))
         print("Parallel preprocessing done!")
 
     def _mix(self, insts: Tuple[str], save_dir: str, sync: str):
 
-        save_dir = self._create_save_dir(insts)
+        save_dir = self._create_save_dir(insts, save_dir)
 
         insts_files_list = [self._get_filepaths(inst) for inst in insts]
 
-        max_length = max([inst_files for inst_files in insts_files_list])
+        max_length = max([inst_files.shape[0] for inst_files in insts_files_list])
         for i, inst_files in enumerate(insts_files_list):
             if inst_files.shape[0] < max_length:
                 diff = max_length - inst_files.shape[0]
                 inst_files = np.pad(inst_files, (0, diff), mode="symmetric")
-                insts_files_list[i] = [Path(x) for x in inst_files]
+            insts_files_list[i] = [Path(x) for x in inst_files]
 
         self._mix_files_and_save(insts_files_list, save_dir, sync)
 
     def _get_filepaths(self, inst: str):
-        metadata = self.metadata.loc[self.metadata.instr == inst]
+        metadata = self.metadata.loc[self.metadata.inst == inst]
 
         if metadata.empty:
             raise KeyError("Instrument not found. Please regenerate metadata!")
@@ -121,9 +123,9 @@ class IRMASPreprocessor:
 
     def _sync_and_mix(self, files_to_sync: List[Path], sync: str):
 
-        cols = ["path", "pitch", "bpm", "onset"]
+        cols = ["pitch", "bpm", "onset"]
         files_metadata_df = self.metadata.loc[self.metadata.path.isin(
-            files_to_sync)].set_index("path")
+            [str(file_path) for file_path in files_to_sync])].set_index("path")
 
         num_files = files_metadata_df.shape[0]
         if num_files != len(files_to_sync):
@@ -134,7 +136,7 @@ class IRMASPreprocessor:
 
         for i, (file_to_sync_path, features) in enumerate(metadata_dict.items()):
 
-            file_to_sync, sr_sync = load_raw_file(file_to_sync_path)
+            file_to_sync, sr_sync = librosa.load(file_to_sync_path, sr=None)
 
             if sr_sync != 44100:
                 file_to_sync = librosa.resample(
@@ -148,8 +150,9 @@ class IRMASPreprocessor:
                 file_to_sync = sync_pitch(
                     file_to_sync, sr_sync, pitch_base=mean_features["pitch"], pitch=features["pitch"])
 
-            file_to_sync = sync_onset(
-                file_to_sync, sr_sync, onset_base=mean_features["onset"], onset=features["onset"])
+            if sync is not None:
+                file_to_sync = sync_onset(
+                    file_to_sync, sr_sync, onset_base=mean_features["onset"], onset=features["onset"])
 
             file_to_sync = librosa.util.normalize(file_to_sync)
 
@@ -167,9 +170,9 @@ class IRMASPreprocessor:
 
         return librosa.resample(y=mixed_sound, orig_sr=44100, target_sr=self.sample_rate)
 
-    def _create_save_dir(self, insts: Union[Tuple[str], List[str]]):
+    def _create_save_dir(self, insts: Union[Tuple[str], List[str]], save_dir: str):
         new_dir_name = '-'.join(insts)
-        new_dir_path = os.path.join(self.new_dir, new_dir_name)
+        new_dir_path = os.path.join(save_dir, new_dir_name)
         os.makedirs(new_dir_path, exist_ok=True)
         return new_dir_path
 
@@ -182,5 +185,9 @@ class IRMASPreprocessor:
 if __name__ == "__main__":
 
     data_dir = '/home/kpintaric/lumen-irmas/data/raw/IRMAS_Training_Data'
-    generate_metadata(data_dir)
+    #generate_metadata(data_dir)
+    metadata_path = '/home/kpintaric/lumen-irmas/data/metadata_train.csv'
+    #preprocess = IRMASPreprocessor.from_metadata()
+    preprocess = IRMASPreprocessor(metadata=metadata_path, data_dir=data_dir)
+    preprocess.preprocess_and_mix(save_dir="data", sync="pitch", ordered=False, num_track_to_mix=3)
     a = 1
