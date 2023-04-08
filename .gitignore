@@ -130,6 +130,7 @@ dmypy.json
 
 # data folder
 data/raw
+data/processed
 
 # wandb
 backend/wandb/

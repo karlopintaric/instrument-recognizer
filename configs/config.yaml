@@ -1,83 +1,44 @@
 
-train_dir:
-    ./data/raw/IRMAS_Training_Data
-
-valid_dir:
-    ./data/raw/IRMAS_Validation_Data
-
-# Preprocessing done on raw audio
-preprocess:
-  PreprocessPipeline:
-    target_sr: 
-      16000
-
-# Transforms applied on raw audio after preprocessing
-transforms:
-  FeatureExtractor:
-    sr:
-      16000
-
-# Augmentations for spectrograms
-signal_augments:
-
-  Audiomentations:
-    p: 0.5
-    max_repeats: 6 
-    max_time_mask: 0.5
-
-spec_augments:
-  
-  MaskFrequency:
-    max_mask_length: 30
-
-batch_size:
-    8
-
-# Training settings
-
-
-loss:
-  FocalLoss:
-    alpha: 0.25
-    gamma: 2
-
-
-optimizer:
-  AdamW:
-    lr: 1.0E-3
-    weight_decay: 0
-
+EPOCHS: 4
 LLRD:
-  base_lr: 1.0E-4
-  lr_decay_rate: 0.9
-  weight_decay: 1.0E-6
+    base_lr: 2.20599946734665e-05
+    lr_decay_rate: 0.8443322714492174
+    weight_decay: 7.831010080797112e-05
 
-# Gradient accumulation
-num_accum: 4
-
-EPOCHS: 5
-  
-scheduler:
-  OneCycleLR:
-    pct_start: 0.15
-    anneal_strategy: cos
-
-save_best_model:
-  True
-
-verbose:
-  True
-
+batch_size: 8
+dropout: 0.36569129354477026
+loss:
+    FocalLoss:
+      alpha: 0.5
+      gamma: 3
 metrics:
-  - hamming_score 
+  - hamming_score
   - zero_one_score
   - mAP
   - mean_f1_score
-
-
-
-
-
-
-
-
+num_accum: 4
+optimizer:
+    AdamW:
+      weight_decay: 0
+preprocess:
+    PreprocessPipeline:
+      target_sr: 16000
+save_best_model: true
+scheduler:
+    OneCycleLR:
+      anneal_strategy: cos
+      pct_start: 0.0543647657802943
+signal_augments:
+    RepeatAudio:
+      max_repeats: 6
+spec_augments:
+    MaskFrequency:
+      max_mask_length: 27
+    MaskTime:
+      max_mask_length: 165
+train_dir: /home/kpintaric/lumen-irmas/data/raw/IRMAS_Training_Data
+transforms:
+    FeatureExtractor:
+      sr: 16000
+valid_dir: ./data/raw/IRMAS_Validation_Data
+verbose: true

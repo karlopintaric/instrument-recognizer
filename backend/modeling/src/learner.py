@@ -3,9 +3,10 @@ import torch
 import torch.optim as optim
 import numpy as np
 import wandb
-import metrics as metrics_module
-import loss as loss_module
-from .utils import init_obj, freeze, unfreeze, LLRD
+import src.metrics as metrics_module
+import src.loss as loss_module
+from .utils import init_obj
+from .models import freeze, unfreeze, LLRD
 from abc import ABC
 
 class BaseLearner(ABC):

@@ -4,8 +4,8 @@ from torch.utils.data import Dataset, DataLoader
 import torch
 import torchvision.transforms
 from torch.nn.utils.rnn import pad_sequence
-import transforms as transform_module
-from utils import init_obj, init_transforms
+import src.transforms as transform_module
+from .utils import init_obj, init_transforms
 from pathlib import Path
 import numpy as np
 from typing import Union
@@ -20,7 +20,7 @@ class IRMASDataset(Dataset):
 
         if self.subset != "train":
             test_songs = np.loadtxt(
-                "test_songs.txt", dtype=str, ndmin=1, delimiter="\n")
+                f"data/test_songs.txt", dtype=str, ndmin=1, delimiter="\n")
         if self.subset == "valid":
             self.files = [file for file in self.files if Path(
                 file).stem not in test_songs]
