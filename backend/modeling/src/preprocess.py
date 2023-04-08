@@ -7,8 +7,8 @@ import numpy as np
 from tqdm.autonotebook import tqdm
 from joblib import Parallel, delayed
 import pandas as pd
-from utils import get_file_info, sync_bpm, sync_onset, sync_pitch
-from transforms import LabelsFromTxt, ParentMultilabel
+from .utils import get_file_info, sync_bpm, sync_onset, sync_pitch
+from .transforms import LabelsFromTxt, ParentMultilabel
 from typing import Union, List, Tuple
 from sklearn.model_selection import StratifiedGroupKFold
 
