@@ -65,41 +65,6 @@ def init_obj(fn_dict, module, *args, **kwargs):
         return fn(*args, **kwargs)
 
 
-def LLRD(config, model):
-    config = config.LLRD
-    lr = config["base_lr"]
-    optimizer_grouped_parameters = [{
-        'params': [p for n, p in model.named_parameters() if not (("embeddings" in n) or ("encoder.layer" in n))],
-        'lr': lr,
-        "weight_decay": 0
-    }]
-    no_decay = ["bias", "layernorm"]
-    # initialize lrs for every layer
-    #num_layers = model.config.num_hidden_layers
-    model_type = "audio_spectrogram_transformer"
-    layers = [getattr(model.module.model, model_type).embeddings] + \
-        list(getattr(model.module.model, model_type).encoder.layer)
-    layers.reverse()
-
-    weight_decay = config["weight_decay"]
-    for layer in layers:
-        lr *= config["lr_decay_rate"]
-        optimizer_grouped_parameters += [
-            {
-                "params": [p for n, p in layer.named_parameters() if not any(nd in n for nd in no_decay)],
-                "weight_decay": weight_decay,
-                "lr": lr,
-            },
-            {
-                "params": [p for n, p in layer.named_parameters() if any(nd in n for nd in no_decay)],
-                "weight_decay": 0.0,
-                "lr": lr,
-            },
-        ]
-
-    return optimizer_grouped_parameters
-
-
 class ComposeTransforms:
 
     def __init__(self, transforms: list):
@@ -109,22 +74,6 @@ class ComposeTransforms:
         for t in self.transforms:
             input = t(input, *args)
         return input
-
-
-def freeze(model):
-
-    for param in model.parameters():
-        param.requires_grad = False
-
-    return model
-
-
-def unfreeze(model):
-
-    for param in model.parameters():
-        param.requires_grad = True
-
-    return model
 
 
 def load_raw_file(path: Union[str, Path]):
@@ -181,7 +130,8 @@ def get_file_info(path: Union[str, Path], extract_music_features: bool):
 def sync_pitch(file_to_sync: np.ndarray, sr: int,
                pitch_base: float, pitch: float):
 
-    assert np.ndim(file_to_sync) == 1, "Input array has more than one dimensions"
+    assert np.ndim(
+        file_to_sync) == 1, "Input array has more than one dimensions"
 
     if pitch_base is None or pitch is None:
         return file_to_sync
@@ -193,9 +143,10 @@ def sync_pitch(file_to_sync: np.ndarray, sr: int,
 
 def sync_bpm(file_to_sync: np.ndarray, sr: int,
              bpm_base: float, bpm: float):
-    
-    assert np.ndim(file_to_sync) == 1, "Input array has more than one dimensions"
-    
+
+    assert np.ndim(
+        file_to_sync) == 1, "Input array has more than one dimensions"
+
     if bpm_base is None or bpm is None:
         return file_to_sync
 
@@ -205,15 +156,16 @@ def sync_bpm(file_to_sync: np.ndarray, sr: int,
 def sync_onset(file_to_sync: np.ndarray, sr: int,
                onset_base: float, onset: float):
 
-    assert np.ndim(file_to_sync) == 1, "Input array has more than one dimensions"
-    
+    assert np.ndim(
+        file_to_sync) == 1, "Input array has more than one dimensions"
+
     if onset_base is None or onset is None:
         return file_to_sync
-    
+
     diff = int(round(abs(onset_base*sr - onset*sr), 0))
 
     if onset_base > onset:
-        return np.pad(file_to_sync, (diff,0), mode="constant", constant_values=0)
+        return np.pad(file_to_sync, (diff, 0), mode="constant", constant_values=0)
     else:
         return file_to_sync[diff:]
 

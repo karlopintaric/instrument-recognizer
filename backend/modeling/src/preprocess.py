@@ -7,9 +7,10 @@ import numpy as np
 from tqdm.autonotebook import tqdm
 from joblib import Parallel, delayed
 import pandas as pd
-from utils import load_raw_file, get_file_info, sync_bpm, sync_onset, sync_pitch
+from utils import get_file_info, sync_bpm, sync_onset, sync_pitch
 from transforms import LabelsFromTxt, ParentMultilabel
 from typing import Union, List, Tuple
+from sklearn.model_selection import StratifiedGroupKFold
 
 
 def generate_metadata(data_dir: Union[str, Path],
@@ -28,9 +29,10 @@ def generate_metadata(data_dir: Union[str, Path],
 
     sound_files = list(data_dir.glob("**/*.wav"))
 
-    #for path in tqdm(sound_files):
+    # for path in tqdm(sound_files):
     #    output = get_file_info(path, extract_music_features)
-    output = Parallel(n_jobs=n_jobs)(delayed(get_file_info)(path, extract_music_features) for path in tqdm(sound_files))
+    output = Parallel(n_jobs=n_jobs)(delayed(get_file_info)(
+        path, extract_music_features) for path in tqdm(sound_files))
 
     cols = ["path", "pitch", "bpm", "onset",
             "sample_rate", "duration", "channels"]
@@ -45,6 +47,22 @@ def generate_metadata(data_dir: Union[str, Path],
     df.to_csv(f'{save_path}/metadata_{subset}.csv', index=False)
 
     return df
+
+
+def create_test_split(metadata_path: str, txt_save_path: str, random_state: int = 1):
+
+    df = pd.read_csv(metadata_path)
+    kf = StratifiedGroupKFold(n_splits=2, shuffle=True,
+                              random_state=random_state)
+    splits = kf.split(df.fname, df.inst, groups=df.song_name)
+    _, test = list(splits)[0]
+
+    test_songs = df.iloc[test].fname.sort_values().to_numpy()
+
+    with open(f'{txt_save_path}/test_songs.txt', 'w') as f:
+        # iterate over the list of names and write each one to a new line in the file
+        for song in test_songs:
+            f.write(song + '\n')
 
 
 class IRMASPreprocessor:
@@ -80,7 +98,7 @@ class IRMASPreprocessor:
         else:
             self.metadata = self.metadata.sample(frac=1)
 
-        #for insts in tqdm(combs):
+        # for insts in tqdm(combs):
         #    self._mix(insts, save_dir, sync)
         Parallel(n_jobs=n_jobs)(delayed(self._mix)
                                 (insts, save_dir, sync) for (insts) in tqdm(combs))
@@ -92,7 +110,8 @@ class IRMASPreprocessor:
 
         insts_files_list = [self._get_filepaths(inst) for inst in insts]
 
-        max_length = max([inst_files.shape[0] for inst_files in insts_files_list])
+        max_length = max([inst_files.shape[0]
+                         for inst_files in insts_files_list])
         for i, inst_files in enumerate(insts_files_list):
             if inst_files.shape[0] < max_length:
                 diff = max_length - inst_files.shape[0]
@@ -164,7 +183,7 @@ class IRMASPreprocessor:
             else:
                 mixed_sound = np.resize(mixed_sound, file_to_sync.shape)
 
-            mixed_sound = mixed_sound + file_to_sync
+            mixed_sound += file_to_sync
 
         mixed_sound /= num_files
 
@@ -185,9 +204,10 @@ class IRMASPreprocessor:
 if __name__ == "__main__":
 
     data_dir = '/home/kpintaric/lumen-irmas/data/raw/IRMAS_Training_Data'
-    #generate_metadata(data_dir)
+    # generate_metadata(data_dir)
     metadata_path = '/home/kpintaric/lumen-irmas/data/metadata_train.csv'
-    #preprocess = IRMASPreprocessor.from_metadata()
+    # preprocess = IRMASPreprocessor.from_metadata()
     preprocess = IRMASPreprocessor(metadata=metadata_path, data_dir=data_dir)
-    preprocess.preprocess_and_mix(save_dir="data", sync="pitch", ordered=False, num_track_to_mix=3)
+    preprocess.preprocess_and_mix(
+        save_dir="data", sync="pitch", ordered=False, num_track_to_mix=3)
     a = 1

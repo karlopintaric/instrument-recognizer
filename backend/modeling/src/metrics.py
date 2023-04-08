@@ -1,4 +1,4 @@
-from sklearn.metrics import hamming_loss, zero_one_loss, f1_score, average_precision_score, roc_curve, label_ranking_average_precision_score
+from sklearn.metrics import hamming_loss, zero_one_loss, f1_score, average_precision_score, roc_curve
 import numpy as np
 
 
