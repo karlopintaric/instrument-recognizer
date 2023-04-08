@@ -150,7 +150,9 @@ class IRMASPreprocessor:
         if num_files != len(files_to_sync):
             raise KeyError("File not found in metadata. Please regenerate")
 
-        mean_features = files_metadata_df[cols].mean().to_dict()
+        if sync is not None:
+            mean_features = files_metadata_df[cols].mean().to_dict()
+        
         metadata_dict = files_metadata_df.to_dict("index")
 
         for i, (file_to_sync_path, features) in enumerate(metadata_dict.items()):

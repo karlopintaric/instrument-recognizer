@@ -133,7 +133,7 @@ def sync_pitch(file_to_sync: np.ndarray, sr: int,
     assert np.ndim(
         file_to_sync) == 1, "Input array has more than one dimensions"
 
-    if pitch_base is None or pitch is None:
+    if any(np.isnan(x) for x in [pitch_base, pitch]):
         return file_to_sync
 
     steps = np.round(12 * np.log2(np.exp(pitch_base)/np.exp(pitch)), 0)
@@ -147,7 +147,7 @@ def sync_bpm(file_to_sync: np.ndarray, sr: int,
     assert np.ndim(
         file_to_sync) == 1, "Input array has more than one dimensions"
 
-    if bpm_base is None or bpm is None:
+    if any(np.isnan(x) for x in [bpm_base, bpm]):
         return file_to_sync
 
     return librosa.effects.time_stretch(y=file_to_sync, rate=bpm_base/bpm)
@@ -159,7 +159,7 @@ def sync_onset(file_to_sync: np.ndarray, sr: int,
     assert np.ndim(
         file_to_sync) == 1, "Input array has more than one dimensions"
 
-    if onset_base is None or onset is None:
+    if any(np.isnan(x) for x in [onset_base, onset]):
         return file_to_sync
 
     diff = int(round(abs(onset_base*sr - onset*sr), 0))
