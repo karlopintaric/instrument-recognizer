@@ -7,9 +7,9 @@ import numpy as np
 from tqdm.autonotebook import tqdm
 from joblib import Parallel, delayed
 import pandas as pd
-from .utils import get_file_info, sync_bpm, sync_onset, sync_pitch
-from .transforms import LabelsFromTxt, ParentMultilabel
-from typing import Union, List, Tuple
+from lumen_irmas.modeling.utils import get_file_info, sync_bpm, sync_onset, sync_pitch
+from lumen_irmas.modeling.transforms import LabelsFromTxt, ParentMultilabel
+from typing import Union, List, Tuple, Optional
 from sklearn.model_selection import StratifiedGroupKFold
 
 
@@ -49,7 +49,7 @@ def generate_metadata(data_dir: Union[str, Path],
     return df
 
 
-def create_test_split(metadata_path: str, txt_save_path: str, random_state: int = 1):
+def create_test_split(metadata_path: str, txt_save_path: str, random_state: Optional[int] = None):
 
     df = pd.read_csv(metadata_path)
     kf = StratifiedGroupKFold(n_splits=2, shuffle=True,

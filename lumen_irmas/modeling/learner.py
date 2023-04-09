@@ -3,45 +3,56 @@ import torch
 import torch.optim as optim
 import numpy as np
 import wandb
-import src.metrics as metrics_module
-import src.loss as loss_module
-from .utils import init_obj
-from .models import freeze, unfreeze, LLRD
-from abc import ABC
+import lumen_irmas.modeling.metrics as metrics_module
+import lumen_irmas.modeling.loss as loss_module
+from lumen_irmas.modeling.utils import init_obj
+from lumen_irmas.modeling.models import freeze, unfreeze, LLRD
+from abc import ABC, abstractmethod
+from typing import Type
+from torch.utils.data import DataLoader
+import torch.nn as nn
+
 
 class BaseLearner(ABC):
-    
-    def __init__(self, train_dl, valid_dl, model, config):
+
+    def __init__(self,
+                 train_dl: Type[DataLoader], valid_dl: Type[DataLoader],
+                 model: Type[nn.Module], config: Type[wandb.config]):
         self.train_dl = train_dl
         self.valid_dl = valid_dl
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = model.to(self.device)
         self.config = config
-    
+
+    @abstractmethod
     def fit(self,):
         pass
-    
+
+    @abstractmethod
     def _train_epoch(self,):
         pass
-    
+
+    @abstractmethod
     def _test_epoch(self,):
         pass
+
 
 class Learner(BaseLearner):
 
     def __init__(self, train_dl, valid_dl, model, config):
         super().init(train_dl, valid_dl, model, config)
 
-        self.model = torch.nn.DataParallel(self.model)
+        self.model = torch.nn.DataParallel(module=self.model,
+                                           device_ids=[i for i in range(config.num_gpus)])
         self.loss_fn = init_obj(self.config.loss, loss_module)
         params = LLRD(self.config, self.model)
         self.optimizer = init_obj(self.config.optimizer, optim, params)
         self.scheduler = init_obj(self.config.scheduler, optim.lr_scheduler,
                                   self.optimizer,
                                   max_lr=[param["lr"] for param in params],
-                                  total_steps=np.ceil(
+                                  total_steps=int(np.ceil(
                                       (self.config.EPOCHS*len(train_dl))/config.num_accum),
-                                  epochs=self.config.EPOCHS)
+                                  epochs=self.config.EPOCHS))
 
         self.verbose = self.config.verbose
         self.metrics = MetricTracker(self.config.metrics, self.verbose)
@@ -71,10 +82,7 @@ class Learner(BaseLearner):
                     f'| EPOCH: {epoch+1} | train_loss: {train_loss:.3f} | val_loss: {val_loss:.3f} |\n')
                 self.metrics.display()
 
-            if self.config.save_best_model:
-                if val_loss < best_val_loss:
-                    best_val_loss = val_loss
-                    torch.save(self.model.state_dict(), f"{model_name}.pth")
+        torch.save(self.model.module.state_dict(), f"{model_name}.pth")
 
     def _train_epoch(self):
 
@@ -171,7 +179,8 @@ class Learner(BaseLearner):
         self.model = freeze(self.model)
 
     def unfreeze(self):
-        self.model = unfreeze(self.model)        
+        self.model = unfreeze(self.model)
+
 
 class MetricTracker:
 

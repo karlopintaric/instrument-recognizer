@@ -8,10 +8,25 @@ from transformers import ASTFeatureExtractor
 import torch.nn.functional as F
 from torchvision.transforms import Compose
 from torchaudio.transforms import FrequencyMasking, TimeMasking
+from abc import ABC, abstractmethod
 
 
-class OneHotEncode:
-    def __init__(self, c):
+class Transform(ABC):
+
+    @abstractmethod
+    def __call__(self):
+        pass
+
+
+class Preprocess(ABC):
+
+    @abstractmethod
+    def forward(self):
+        pass
+
+
+class OneHotEncode(Transform):
+    def __init__(self, c: list):
         self.c = c
 
     def __call__(self, labels):
@@ -22,7 +37,7 @@ class OneHotEncode:
         return target
 
 
-class ParentMultilabel:
+class ParentMultilabel(Transform):
 
     def __init__(self, sep=" "):
         self.sep = sep
@@ -32,7 +47,7 @@ class ParentMultilabel:
         return label
 
 
-class LabelsFromTxt:
+class LabelsFromTxt(Transform):
 
     def __init__(self, delimiter=None):
         self.delimiter = delimiter
@@ -43,10 +58,9 @@ class LabelsFromTxt:
         return label
 
 
-class PreprocessPipeline(nn.Module):
+class PreprocessPipeline(Preprocess):
 
     def __init__(self, target_sr):
-        super().__init__()
         self.target_sr = target_sr
 
     def forward(self, path):
@@ -68,7 +82,7 @@ class PreprocessPipeline(nn.Module):
         return signal
 
 
-class SpecToImage:
+class SpecToImage(Transform):
 
     def __init__(self, mean=None, std=None, eps=1e-6):
         self.mean = mean
@@ -89,7 +103,7 @@ class SpecToImage:
         return spec_scaled.type(torch.uint8)
 
 
-class MinMaxScale:
+class MinMaxScale(Transform):
 
     def __call__(self, spec):
 
@@ -98,7 +112,7 @@ class MinMaxScale:
         return (spec - spec_min) / (spec_max - spec_min)
 
 
-class Normalize:
+class Normalize(Transform):
     def __init__(self, mean, std):
         self.mean = mean
         self.std = std
@@ -107,7 +121,7 @@ class Normalize:
         return (spec - self.mean) / self.std
 
 
-class FeatureExtractor:
+class FeatureExtractor(Transform):
 
     def __init__(self, sr):
         self.transform = partial(
@@ -117,7 +131,7 @@ class FeatureExtractor:
         return self.transform(signal.squeeze()).input_values.mT
 
 
-class Preemphasis:
+class Preemphasis(Transform):
     """perform preemphasis on the input signal.
     :param signal: The signal to filter.
     :param coeff: The preemphasis coefficient. 0 is none, default 0.97.
@@ -131,7 +145,7 @@ class Preemphasis:
         return torch.cat([signal[:, :1], signal[:, 1:] - self.coeff * signal[:, :-1]], dim=1)
 
 
-class Spectrogram:
+class Spectrogram(Transform):
 
     def __init__(self, sample_rate, n_mels, hop_length, n_fft):
         self.transform = torchaudio.transforms.MelSpectrogram(
@@ -146,13 +160,13 @@ class Spectrogram:
         return self.transform(signal)
 
 
-class LogTransform:
+class LogTransform(Transform):
 
     def __call__(self, signal):
         return torch.log(signal+1e-8)
 
 
-class PadCutToLength:
+class PadCutToLength(Transform):
 
     def __init__(self, max_length):
         self.max_length = max_length
@@ -168,7 +182,7 @@ class PadCutToLength:
             return F.pad(spec, (0, diff), mode="constant", value=0)
 
 
-class CustomFeatureExtractor:
+class CustomFeatureExtractor(Transform):
 
     def __init__(self, sample_rate, n_mels, hop_length, n_fft, max_length, mean, std):
         self.extract = Compose([
@@ -184,7 +198,7 @@ class CustomFeatureExtractor:
         return self.extract(x)
 
 
-class RepeatAudio:
+class RepeatAudio(Transform):
 
     def __init__(self, max_repeats: int = 2):
         self.max_repeats = max_repeats
@@ -194,7 +208,7 @@ class RepeatAudio:
         return np.tile(signal, reps=num_repeats)
 
 
-class MaskFrequency:
+class MaskFrequency(Transform):
 
     def __init__(self, max_mask_length: int = 0):
         self.aug = FrequencyMasking(max_mask_length)
@@ -203,7 +217,7 @@ class MaskFrequency:
         return self.aug(spec)
 
 
-class MaskTime:
+class MaskTime(Transform):
 
     def __init__(self, max_mask_length: int = 0):
         self.aug = TimeMasking(max_mask_length)

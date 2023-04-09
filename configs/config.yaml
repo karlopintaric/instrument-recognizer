@@ -7,6 +7,7 @@ LLRD:
 
 batch_size: 8
 dropout: 0.36569129354477026
+num_gpus: 2
 loss:
     FocalLoss:
       alpha: 0.5

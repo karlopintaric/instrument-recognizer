@@ -1,26 +1,43 @@
-from .utils import get_wav_files, CLASSES
-from .transforms import LabelsFromTxt, OneHotEncode, ParentMultilabel
+from lumen_irmas.modeling.utils import get_wav_files, CLASSES
+from lumen_irmas.modeling.transforms import LabelsFromTxt, OneHotEncode, ParentMultilabel, Preprocess, Transform
 from torch.utils.data import Dataset, DataLoader
 import torch
-import torchvision.transforms
+from torchvision.transforms import Compose
 from torch.nn.utils.rnn import pad_sequence
-import src.transforms as transform_module
-from .utils import init_obj, init_transforms
+import lumen_irmas.modeling.transforms as transform_module
+from lumen_irmas.modeling.utils import init_obj, init_transforms
 from pathlib import Path
 import numpy as np
-from typing import Union
+from typing import Union, Type, Optional
 
 
-class IRMASDataset(Dataset): 
-    def __init__(self, audio_dir: Union[str, Path], preprocess, signal_augments=None,
-                 transforms=None, spec_augments=None, subset: str="train"):
-     
+class IRMASDataset(Dataset):
+    def __init__(self,
+                 audio_dir: Union[str, Path],
+                 preprocess: Type[Preprocess],
+                 signal_augments: Optional[Union[Type[Compose],
+                                                 Type[Transform]]] = None,
+                 transforms: Optional[Union[Type[Compose],
+                                            Type[Transform]]] = None,
+                 spec_augments: Optional[Union[Type[Compose],
+                                               Type[Transform]]] = None,
+                 subset: str = "train"):
+
         self.files = get_wav_files(audio_dir)
+        assert subset in ["train", "valid",
+                          "test"], "Subset can only be train, valid or test"
         self.subset = subset
 
         if self.subset != "train":
-            test_songs = np.loadtxt(
-                f"data/test_songs.txt", dtype=str, ndmin=1, delimiter="\n")
+            try:
+                test_songs = np.loadtxt(
+                    f"data/test_songs.txt", dtype=str, ndmin=1, delimiter="\n")
+            except OSError as e:
+                print("Error: {e}")
+                print(
+                    "test_songs.txt not found in data/. Please generate a split before training")
+                raise e
+
         if self.subset == "valid":
             self.files = [file for file in self.files if Path(
                 file).stem not in test_songs]
@@ -41,12 +58,12 @@ class IRMASDataset(Dataset):
         signal = self.preprocess(sample_path)
 
         if self.subset == "train":
-            target_transforms = torchvision.transforms.Compose([
+            target_transforms = Compose([
                 ParentMultilabel(sep="-"),
                 OneHotEncode(CLASSES)
             ])
         else:
-            target_transforms = torchvision.transforms.Compose([
+            target_transforms = Compose([
                 LabelsFromTxt(),
                 OneHotEncode(CLASSES)
             ])
