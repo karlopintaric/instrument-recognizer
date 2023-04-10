@@ -21,7 +21,7 @@ class Transform(ABC):
 class Preprocess(ABC):
 
     @abstractmethod
-    def forward(self):
+    def __call__(self):
         pass
 
 
@@ -63,7 +63,7 @@ class PreprocessPipeline(Preprocess):
     def __init__(self, target_sr):
         self.target_sr = target_sr
 
-    def forward(self, path):
+    def __call__(self, path):
         signal, sr = torchaudio.load(path)
         signal = self._resample(signal, sr)
         signal = self._mix_down(signal)

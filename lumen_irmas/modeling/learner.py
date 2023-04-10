@@ -6,7 +6,7 @@ import wandb
 import lumen_irmas.modeling.metrics as metrics_module
 import lumen_irmas.modeling.loss as loss_module
 from lumen_irmas.modeling.utils import init_obj
-from lumen_irmas.modeling.models import freeze, unfreeze, LLRD
+from lumen_irmas.modeling.models import freeze, unfreeze, LLRD, Ensemble
 from abc import ABC, abstractmethod
 from typing import Type, Optional
 from torch.utils.data import DataLoader
@@ -52,7 +52,7 @@ class Learner(BaseLearner):
                                   self.optimizer,
                                   max_lr=[param["lr"] for param in params],
                                   epochs=self.config.EPOCHS,
-                                  steps_per_epoch=np.ceil(len(train_dl)/self.config.num_accum))
+                                  steps_per_epoch=int(np.ceil(len(train_dl)/self.config.num_accum)))
 
         self.verbose = self.config.verbose
         self.metrics = MetricTracker(self.config.metrics, self.verbose)
@@ -124,7 +124,7 @@ class Learner(BaseLearner):
             wandb.log({"train_loss_per_batch": loss.item(),
                        "train_step": self.train_step})
             train_loss += loss.item()
-            
+
             if distill:
                 if (idx+1) % 5000 == 0:
                     val_loss = self._test_epoch()
@@ -196,7 +196,8 @@ class KDLearner(Learner):
     def __init__(self, train_dl, valid_dl, student_model, teachers, config):
         super().__init__(train_dl, valid_dl, student_model, config)
 
-        self.teachers = [teacher.to(self.device) for teacher in teachers]
+        self.teachers = Ensemble(
+            [nn.DataParallel(teacher.to(self.device)) for teacher in teachers])
         self.loss_fn = DistillationLoss(self.teachers, self.loss_fn)
 
     def _train_epoch(self):

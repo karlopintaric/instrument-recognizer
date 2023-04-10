@@ -4,7 +4,6 @@ import torch.nn as nn
 from torchvision.ops import sigmoid_focal_loss
 from functools import partial
 from typing import Union, Type
-from functorch import combine_state_for_ensemble
 
 
 class FocalLoss(nn.Module):

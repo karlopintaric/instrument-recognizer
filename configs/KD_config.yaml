@@ -1,7 +1,7 @@
 
-EPOCHS: 3
+EPOCHS: 1
 
-batch_size: 8
+batch_size: 2
 LLRD:
     base_lr: 1.0e-04
     lr_decay_rate: 1
@@ -21,7 +21,7 @@ metrics:
   - zero_one_score
   - mAP
   - mean_f1_score
-num_accum: 4
+num_accum: 8
 optimizer:
     AdamW:
 preprocess:
@@ -40,7 +40,7 @@ spec_augments:
       max_mask_length: 27
     MaskTime:
       max_mask_length: 165
-train_dir: /nfs/home/8548f215c44990b1/lumen-irmas/data/processed/no_sync_two
+train_dir: /nfs/home/8548f215c44990b1/lumen-irmas/data/processed/ensemble
 transforms:
     FeatureExtractor:
       sr: 16000

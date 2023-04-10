@@ -4,6 +4,9 @@ LLRD:
     base_lr: 2.0e-05
     lr_decay_rate: 0.85
     weight_decay: 8.0e-05
+    
+    body: base_model
+    head: classifier
 
 batch_size: 8
 dropout: 0.5

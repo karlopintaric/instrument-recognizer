@@ -2,39 +2,42 @@ import torch
 import torch.nn as nn
 from transformers import ASTModel, ASTConfig
 from warnings import warn
+from typing import Type, List
 
 
 class StudentAST(nn.Module):
-    
-    def __init__(self, n_classes: int, hidden_size: int=768, num_attention_heads: int=12):
+
+    def __init__(self, n_classes: int, hidden_size: int = 768, num_attention_heads: int = 12):
         super().__init__()
-    
-        config = ASTConfig(hidden_size=hidden_size, num_attention_heads=num_attention_heads, intermediate_size=hidden_size/2)
+
+        config = ASTConfig(hidden_size=hidden_size,
+                           num_attention_heads=num_attention_heads, intermediate_size=hidden_size*2)
         self.base_model = ASTModel(config=config)
         self.classifier = StudentClassificationHead(hidden_size, n_classes)
-        
+
     def forward(self, x: torch.Tensor):
         x = self.base_model(x)[0]
         x = self.classifier(x)
         return x
 
+
 class StudentClassificationHead(nn.Module):
     def __init__(self, emb_size: int, n_classes: int):
         super().__init__()
-        
+
         self.cls_head = nn.Linear(emb_size, n_classes)
         self.dist_head = nn.Linear(emb_size, n_classes)
-    
+
     def forward(self, x: torch.Tensor):
-        x_cls, x_dist = x[:,0], x[:, 1]
+        x_cls, x_dist = x[:, 0], x[:, 1]
         x_cls_head = self.cls_head(x_cls)
         x_dist_head = self.dist_head(x_dist)
-        
+
         if self.training:
             x = x_cls_head, x_dist_head
         else:
             x = (x_cls_head + x_dist_head) / 2
-        
+
         return x
 
 
@@ -55,13 +58,14 @@ class ASTPretrained(nn.Module):
         x = self.classifier(x)
         return x
 
+
 def LLRD(config, model):
     try:
         config = config.LLRD
     except:
         warn("No LLRD found in config. Learner will use single lr for whole model.")
         return None
-    
+
     lr = config["base_lr"]
     weight_decay = config["weight_decay"]
     no_decay = ["bias", "layernorm"]
@@ -80,10 +84,10 @@ def LLRD(config, model):
             "lr": lr,
         },
     ]
-    
+
     # initialize lrs for every layer
-    layers = [getattr(model.module, config.body).embeddings] + \
-        list(getattr(model.module, config.body).encoder.layer)
+    layers = [getattr(model.module, config["body"]).embeddings] + \
+        list(getattr(model.module, config["body"]).encoder.layer)
     layers.reverse()
     for layer in layers:
         lr *= config["lr_decay_rate"]
@@ -102,6 +106,16 @@ def LLRD(config, model):
 
     return optimizer_grouped_parameters
 
+class Ensemble(nn.Module):
+    def __init__(self, models: List[nn.Module]):
+        super().__init__()
+        self.models = models
+
+    def forward(self, x):
+        predictions = []
+        for model in self.models:
+            predictions.append(model(x))
+        return torch.mean(torch.stack(predictions), dim=0)
 
 def freeze(model):
 
@@ -117,4 +131,6 @@ def unfreeze(model):
         param.requires_grad = True
 
     return model
+
+
 

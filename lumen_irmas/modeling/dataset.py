@@ -30,8 +30,8 @@ class IRMASDataset(Dataset):
 
         if self.subset != "train":
             try:
-                test_songs = np.loadtxt(
-                    f"data/test_songs.txt", dtype=str, ndmin=1, delimiter="\n")
+                test_songs = np.genfromtxt(
+                    f"../data/test_songs.txt", dtype=str, ndmin=1, delimiter="\n")
             except OSError as e:
                 print("Error: {e}")
                 print(
@@ -71,7 +71,7 @@ class IRMASDataset(Dataset):
         label = target_transforms(sample_path)
 
         if self.signal_augments is not None:
-            signal = self.signal_augments(signal, self.preprocess.target_sr)
+            signal = self.signal_augments(signal)
 
         if self.transforms is not None:
             signal = self.transforms(signal)
