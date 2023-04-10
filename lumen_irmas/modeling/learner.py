@@ -8,16 +8,17 @@ import lumen_irmas.modeling.loss as loss_module
 from lumen_irmas.modeling.utils import init_obj
 from lumen_irmas.modeling.models import freeze, unfreeze, LLRD
 from abc import ABC, abstractmethod
-from typing import Type
+from typing import Type, Optional
 from torch.utils.data import DataLoader
 import torch.nn as nn
+from lumen_irmas.modeling.loss import DistillationLoss
 
 
 class BaseLearner(ABC):
 
     def __init__(self,
                  train_dl: Type[DataLoader], valid_dl: Type[DataLoader],
-                 model: Type[nn.Module], config: Type[wandb.config]):
+                 model: Type[nn.Module], config):
         self.train_dl = train_dl
         self.valid_dl = valid_dl
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -40,7 +41,7 @@ class BaseLearner(ABC):
 class Learner(BaseLearner):
 
     def __init__(self, train_dl, valid_dl, model, config):
-        super().init(train_dl, valid_dl, model, config)
+        super().__init__(train_dl, valid_dl, model, config)
 
         self.model = torch.nn.DataParallel(module=self.model,
                                            device_ids=[i for i in range(config.num_gpus)])
@@ -50,9 +51,8 @@ class Learner(BaseLearner):
         self.scheduler = init_obj(self.config.scheduler, optim.lr_scheduler,
                                   self.optimizer,
                                   max_lr=[param["lr"] for param in params],
-                                  total_steps=int(np.ceil(
-                                      (self.config.EPOCHS*len(train_dl))/config.num_accum),
-                                  epochs=self.config.EPOCHS))
+                                  epochs=self.config.EPOCHS,
+                                  steps_per_epoch=np.ceil(len(train_dl)/self.config.num_accum))
 
         self.verbose = self.config.verbose
         self.metrics = MetricTracker(self.config.metrics, self.verbose)
@@ -63,7 +63,6 @@ class Learner(BaseLearner):
 
     def fit(self, model_name: str = "model"):
 
-        best_val_loss = np.inf
         loop = tqdm(range(self.config.EPOCHS), leave=False)
 
         for epoch in loop:
@@ -84,7 +83,7 @@ class Learner(BaseLearner):
 
         torch.save(self.model.module.state_dict(), f"{model_name}.pth")
 
-    def _train_epoch(self):
+    def _train_epoch(self, distill: bool = False):
 
         loop = tqdm(self.train_dl, leave=False)
         self.model.train()
@@ -98,9 +97,14 @@ class Learner(BaseLearner):
             yb = yb.to(self.device)
 
             # forward
-            with torch.autocast(device_type=self.device, dtype=torch.float16 if self.device != "cpu" else torch.bfloat16):
+            with torch.autocast(device_type=self.device, dtype=torch.float16):
                 predictions = self.model(Xb)
-                loss = self.loss_fn(predictions, yb)
+
+                if distill:
+                    loss = self.loss_fn(Xb, predictions, yb)
+                else:
+                    loss = self.loss_fn(predictions, yb)
+
                 loss /= self.config.num_accum
 
             # backward
@@ -120,6 +124,11 @@ class Learner(BaseLearner):
             wandb.log({"train_loss_per_batch": loss.item(),
                        "train_step": self.train_step})
             train_loss += loss.item()
+            
+            if distill:
+                if (idx+1) % 5000 == 0:
+                    val_loss = self._test_epoch()
+                    wandb.log({"val_loss": val_loss})
 
         train_loss /= num_batches
 
@@ -180,6 +189,18 @@ class Learner(BaseLearner):
 
     def unfreeze(self):
         self.model = unfreeze(self.model)
+
+
+class KDLearner(Learner):
+
+    def __init__(self, train_dl, valid_dl, student_model, teachers, config):
+        super().__init__(train_dl, valid_dl, student_model, config)
+
+        self.teachers = [teacher.to(self.device) for teacher in teachers]
+        self.loss_fn = DistillationLoss(self.teachers, self.loss_fn)
+
+    def _train_epoch(self):
+        return super()._train_epoch(distill=True)
 
 
 class MetricTracker:

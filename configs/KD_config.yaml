@@ -1,11 +1,15 @@
 
 EPOCHS: 3
-LLRD:
-    base_lr: 2.0e-05
-    lr_decay_rate: 0.85
-    weight_decay: 8.0e-05
 
 batch_size: 8
+LLRD:
+    base_lr: 1.0e-04
+    lr_decay_rate: 1
+    weight_decay: 8.0e-05
+
+    body: base_model
+    head: classifier
+
 dropout: 0.5
 num_gpus: 2
 loss:
@@ -20,7 +24,6 @@ metrics:
 num_accum: 4
 optimizer:
     AdamW:
-      weight_decay: 0
 preprocess:
     PreprocessPipeline:
       target_sr: 16000

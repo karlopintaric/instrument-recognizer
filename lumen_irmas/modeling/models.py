@@ -1,14 +1,41 @@
 import torch
 import torch.nn as nn
-from transformers import ASTModel
+from transformers import ASTModel, ASTConfig
+from warnings import warn
 
 
 class StudentAST(nn.Module):
-    pass
-
+    
+    def __init__(self, n_classes: int, hidden_size: int=768, num_attention_heads: int=12):
+        super().__init__()
+    
+        config = ASTConfig(hidden_size=hidden_size, num_attention_heads=num_attention_heads, intermediate_size=hidden_size/2)
+        self.base_model = ASTModel(config=config)
+        self.classifier = StudentClassificationHead(hidden_size, n_classes)
+        
+    def forward(self, x: torch.Tensor):
+        x = self.base_model(x)[0]
+        x = self.classifier(x)
+        return x
 
 class StudentClassificationHead(nn.Module):
-    pass
+    def __init__(self, emb_size: int, n_classes: int):
+        super().__init__()
+        
+        self.cls_head = nn.Linear(emb_size, n_classes)
+        self.dist_head = nn.Linear(emb_size, n_classes)
+    
+    def forward(self, x: torch.Tensor):
+        x_cls, x_dist = x[:,0], x[:, 1]
+        x_cls_head = self.cls_head(x_cls)
+        x_dist_head = self.dist_head(x_dist)
+        
+        if self.training:
+            x = x_cls_head, x_dist_head
+        else:
+            x = (x_cls_head + x_dist_head) / 2
+        
+        return x
 
 
 class ASTPretrained(nn.Module):
@@ -28,38 +55,13 @@ class ASTPretrained(nn.Module):
         x = self.classifier(x)
         return x
 
-
-class RNN(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, num_classes, dropout=[0.1, 0.1]):
-        super().__init__()
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers,
-                            batch_first=True, dropout=dropout[0])
-        self.dropout = nn.Dropout(dropout[1])
-        self.fc = nn.Linear(hidden_size, num_classes)
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    def forward(self, x):
-        # Set initial hidden and cell states
-        batch_size = x.size(0)
-        h0 = torch.zeros(self.num_layers, batch_size,
-                         self.hidden_size).to(self.device)
-        c0 = torch.zeros(self.num_layers, batch_size,
-                         self.hidden_size).to(self.device)
-
-        # Forward propagate LSTM
-        # shape = (batch_size, seq_length, hidden_size)
-        out, _ = self.lstm(x, (h0, c0))
-        out = self.dropout(out)
-
-        # Decode the hidden state of the last time step
-        out = self.fc(out[:, -1, :])
-        return out
-
-
 def LLRD(config, model):
-    config = config.LLRD
+    try:
+        config = config.LLRD
+    except:
+        warn("No LLRD found in config. Learner will use single lr for whole model.")
+        return None
+    
     lr = config["base_lr"]
     weight_decay = config["weight_decay"]
     no_decay = ["bias", "layernorm"]
@@ -78,9 +80,10 @@ def LLRD(config, model):
             "lr": lr,
         },
     ]
+    
     # initialize lrs for every layer
-    layers = [model.module.base_model.embeddings] + \
-        list(model.module.base_model.encoder.layer)
+    layers = [getattr(model.module, config.body).embeddings] + \
+        list(getattr(model.module, config.body).encoder.layer)
     layers.reverse()
     for layer in layers:
         lr *= config["lr_decay_rate"]
@@ -115,7 +118,3 @@ def unfreeze(model):
 
     return model
 
-
-if __name__ == "__main__":
-    model = RNN(input_size=128, hidden_size=64, num_layers=3, num_classes=11)
-    print(model)
