@@ -16,7 +16,7 @@ class FocalLoss(nn.Module):
     def forward(self, inputs, targets):
         return self.loss_fn(inputs=inputs, targets=targets)
     
-class DistillationLoss(nn.Module):
+class DistillationLoss_not_working(nn.Module):
     
     def __init__(self, teachers: list, loss_fn: Type[nn.Module]):
         super().__init__()
@@ -39,3 +39,17 @@ class BCELoss(nn.Module):
     
     def forward(self, inputs, targets):
         return self.loss_fn(inputs, targets)
+
+class DistillationLoss_not_working(nn.Module):
+    
+    def __init__(self, teachers: list, loss_fn: Type[nn.Module]):
+        super().__init__()
+        #self.teacher = teachers
+        self.loss_fn = loss_fn
+    
+    def forward(self, student_outputs, teacher_outputs, targets):
+        
+        base_loss = self.loss_fn(student_outputs, targets)
+        teacher_loss = self.loss_fn(student_outputs, teacher_outputs)
+        
+        return (base_loss + teacher_loss) / 2
