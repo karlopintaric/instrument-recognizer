@@ -32,3 +32,10 @@ class DistillationLoss(nn.Module):
         
         return (base_loss + teacher_loss) / 2
 
+class BCELoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.loss_fn = nn.BCEWithLogitsLoss()
+    
+    def forward(self, inputs, targets):
+        return self.loss_fn(inputs, targets)
