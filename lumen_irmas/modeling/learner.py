@@ -101,7 +101,8 @@ class Learner(BaseLearner):
                 predictions = self.model(Xb)
 
                 if distill:
-                    loss = self.loss_fn(Xb, predictions, yb)
+                    teacher_outputs = self.teachers(Xb)
+                    loss = self.loss_fn(predictions, teacher_outputs, yb)
                 else:
                     loss = self.loss_fn(predictions, yb)
 
@@ -197,7 +198,7 @@ class KDLearner(Learner):
         super().__init__(train_dl, valid_dl, student_model, config)
 
         self.teachers = Ensemble(
-            [nn.DataParallel(teacher.to(self.device)) for teacher in teachers])
+            [nn.DataParallel(teacher.eval().to(self.device)) for teacher in teachers])
         self.loss_fn = DistillationLoss(self.teachers, self.loss_fn)
 
     def _train_epoch(self):

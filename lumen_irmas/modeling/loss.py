@@ -23,13 +23,10 @@ class DistillationLoss(nn.Module):
         self.teacher = teachers
         self.loss_fn = loss_fn
     
-    def forward(self, inputs, outputs, targets):
+    def forward(self, student_outputs, teacher_outputs, targets):
         
-        outputs_cls, outputs_dist = outputs
+        outputs_cls, outputs_dist = student_outputs
         base_loss = self.loss_fn(outputs_cls, targets)
-
-        with torch.no_grad():
-            teacher_outputs = self.teacher(inputs)
         
         teacher_loss = self.loss_fn(outputs_dist, teacher_outputs)
         
