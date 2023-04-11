@@ -20,7 +20,7 @@ class DistillationLoss(nn.Module):
     
     def __init__(self, teachers: list, loss_fn: Type[nn.Module]):
         super().__init__()
-        self.teacher = teachers
+        #self.teacher = teachers
         self.loss_fn = loss_fn
     
     def forward(self, student_outputs, teacher_outputs, targets):

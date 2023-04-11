@@ -7,11 +7,11 @@ from typing import Type, List
 
 class StudentAST(nn.Module):
 
-    def __init__(self, n_classes: int, hidden_size: int = 768, num_attention_heads: int = 12):
+    def __init__(self, n_classes: int, hidden_size: int = 768, num_heads: int = 12):
         super().__init__()
 
         config = ASTConfig(hidden_size=hidden_size,
-                           num_attention_heads=num_attention_heads, intermediate_size=hidden_size*2)
+                           num_attention_heads=num_heads, intermediate_size=hidden_size*2)
         self.base_model = ASTModel(config=config)
         self.classifier = StudentClassificationHead(hidden_size, n_classes)
 
@@ -109,7 +109,7 @@ def LLRD(config, model):
 class Ensemble(nn.Module):
     def __init__(self, models: List[nn.Module]):
         super().__init__()
-        self.models = models
+        self.models = [freeze(model).eval() for model in models]
 
     def forward(self, x):
         predictions = []

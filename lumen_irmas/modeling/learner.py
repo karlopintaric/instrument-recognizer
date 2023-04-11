@@ -198,7 +198,7 @@ class KDLearner(Learner):
         super().__init__(train_dl, valid_dl, student_model, config)
 
         self.teachers = Ensemble(
-            [nn.DataParallel(teacher.eval().to(self.device)) for teacher in teachers])
+            [nn.DataParallel(teacher.to(self.device)) for teacher in teachers])
         self.loss_fn = DistillationLoss(self.teachers, self.loss_fn)
 
     def _train_epoch(self):
