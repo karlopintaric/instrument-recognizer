@@ -109,7 +109,7 @@ def LLRD(config, model):
 class Ensemble(nn.Module):
     def __init__(self, models: List[nn.Module]):
         super().__init__()
-        self.models = [freeze(model).eval() for model in models]
+        self.models = [freeze(model) for model in models]
 
     def forward(self, x):
         predictions = []
@@ -119,6 +119,7 @@ class Ensemble(nn.Module):
 
 def freeze(model):
 
+    model.eval()
     for param in model.parameters():
         param.requires_grad = False
 
@@ -127,6 +128,7 @@ def freeze(model):
 
 def unfreeze(model):
 
+    model.train()
     for param in model.parameters():
         param.requires_grad = True
 

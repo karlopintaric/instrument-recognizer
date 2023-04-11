@@ -85,6 +85,9 @@ class Learner(BaseLearner):
 
     def _train_epoch(self, distill: bool = False):
 
+        if distill:
+            print("Distilling knowledge...", flush=True)
+        
         loop = tqdm(self.train_dl, leave=False)
         self.model.train()
 
