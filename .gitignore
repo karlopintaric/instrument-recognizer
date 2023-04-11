@@ -133,9 +133,9 @@ data/raw
 data/processed
 
 # wandb
-backend/wandb/
+scripts/wandb/
 
-# temp models
-backend/model.pth
+# models
+weights/
 
 lumen_2023_workshop-main/
