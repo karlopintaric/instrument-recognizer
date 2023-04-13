@@ -37,10 +37,12 @@ class HardDistillationLoss(nn.Module):
 
     def forward(self, inputs, student_outputs, targets):
 
+        outputs_cls, outputs_dist = student_outputs
+        
         teacher_outputs = self.teacher(inputs)
         teacher_labels = (teacher_outputs > self.threshold).float()
 
-        base_loss = self.loss_fn(student_outputs, targets)
-        teacher_loss = self.loss_fn(student_outputs, teacher_labels)
+        base_loss = self.loss_fn(outputs_cls, targets)
+        teacher_loss = self.loss_fn(outputs_dist, teacher_labels)
 
         return (base_loss + teacher_loss) / 2

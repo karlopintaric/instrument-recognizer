@@ -7,6 +7,7 @@ import sys
 import copy
 from lumen_irmas.modeling.models import freeze
 
+
 class StudentAST(nn.Module):
 
     def __init__(self, n_classes: int, hidden_size: int = 384, num_heads: int = 6):
@@ -16,7 +17,6 @@ class StudentAST(nn.Module):
                            num_attention_heads=num_heads, intermediate_size=hidden_size*2)
         self.base_model = ASTModel(config=config)
         self.classifier = StudentClassificationHead(hidden_size, n_classes)
-        
 
     def forward(self, x: torch.Tensor):
         x = self.base_model(x)[0]
@@ -45,7 +45,7 @@ class StudentClassificationHead(nn.Module):
 
 
 class ASTPretrained(nn.Module):
-    def __init__(self, n_classes: int, dropout: float):
+    def __init__(self, n_classes: int, dropout: float = 0.5):
         super().__init__()
         self.base_model = ASTModel.from_pretrained(
             "MIT/ast-finetuned-audioset-10-10-0.4593")
@@ -109,29 +109,35 @@ def LLRD(config, model):
 
     return optimizer_grouped_parameters
 
+
 class Ensemble(nn.Module):
-    def __init__(self, base_model: str, weights: List[str], device: str = "cuda"):
+    def __init__(self, base_model: nn.Module, weights: List[str]):
         super().__init__()
         weights = [torch.load(weight) for weight in weights]
-        self.models = self._load_models(base_model, weights, device)
+        self.models = self._load_models(base_model, weights)
 
     def forward(self, x):
         predictions = []
         for model in self.models:
             predictions.append(model(x))
         return torch.mean(torch.stack(predictions), dim=0)
-    
-    def _load_models(self, base_model, weights, device):
-        
-        base_model = base_model.to(device)
+
+    def to(self, device: str):
+        self.models = [model.to(device) for model in self.models]
+
+    def _load_models(self, base_model, weights):
+
         models = []
-        
+
         for weight in weights:
             weight = torch.load(weight)
             model = copy.deepcopy(base_model)
             model.load_state_dict(weight)
             models.append(freeze(model))
-        
+
+        return models
+
+
 def freeze(model):
 
     model.eval()
@@ -148,6 +154,3 @@ def unfreeze(model):
         param.requires_grad = True
 
     return model
-
-
-
