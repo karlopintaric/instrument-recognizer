@@ -4,6 +4,7 @@ import torch.nn as nn
 from torchvision.ops import sigmoid_focal_loss
 from functools import partial
 from typing import Union, Type
+import numpy as np
 
 
 class FocalLoss(nn.Module):
@@ -15,41 +16,31 @@ class FocalLoss(nn.Module):
 
     def forward(self, inputs, targets):
         return self.loss_fn(inputs=inputs, targets=targets)
-    
-class DistillationLoss_not_working(nn.Module):
-    
-    def __init__(self, teachers: list, loss_fn: Type[nn.Module]):
-        super().__init__()
-        #self.teacher = teachers
-        self.loss_fn = loss_fn
-    
-    def forward(self, student_outputs, teacher_outputs, targets):
-        
-        outputs_cls, outputs_dist = student_outputs
-        base_loss = self.loss_fn(outputs_cls, targets)
-        
-        teacher_loss = self.loss_fn(outputs_dist, teacher_outputs)
-        
-        return (base_loss + teacher_loss) / 2
+
 
 class BCELoss(nn.Module):
     def __init__(self):
         super().__init__()
         self.loss_fn = nn.BCEWithLogitsLoss()
-    
+
     def forward(self, inputs, targets):
         return self.loss_fn(inputs, targets)
 
-class DistillationLoss_not_working(nn.Module):
-    
-    def __init__(self, teachers: list, loss_fn: Type[nn.Module]):
+
+class HardDistillationLoss(nn.Module):
+
+    def __init__(self, teachers: nn.Module, loss_fn: nn.Module, threshold: Union[list, np.array], device: str = "cuda"):
         super().__init__()
-        #self.teacher = teachers
+        self.teacher = teachers
         self.loss_fn = loss_fn
-    
-    def forward(self, student_outputs, teacher_outputs, targets):
-        
+        self.threshold = torch.tensor(threshold).to(device)
+
+    def forward(self, inputs, student_outputs, targets):
+
+        teacher_outputs = self.teacher(inputs)
+        teacher_labels = (teacher_outputs > self.threshold).float()
+
         base_loss = self.loss_fn(student_outputs, targets)
-        teacher_loss = self.loss_fn(student_outputs, teacher_outputs)
-        
+        teacher_loss = self.loss_fn(student_outputs, teacher_labels)
+
         return (base_loss + teacher_loss) / 2

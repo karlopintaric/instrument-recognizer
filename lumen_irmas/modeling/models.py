@@ -3,7 +3,9 @@ import torch.nn as nn
 from transformers import ASTModel, ASTConfig
 from warnings import warn
 from typing import Type, List
-
+import sys
+import copy
+from lumen_irmas.modeling.models import freeze
 
 class StudentAST(nn.Module):
 
@@ -13,14 +15,11 @@ class StudentAST(nn.Module):
         config = ASTConfig(hidden_size=hidden_size,
                            num_attention_heads=num_heads, intermediate_size=hidden_size*2)
         self.base_model = ASTModel(config=config)
-        self.classifier = nn.Sequential(
-            nn.LayerNorm((hidden_size,), eps=1e-12),
-            nn.Linear(hidden_size, n_classes))
-        #self.classifier = StudentClassificationHead(hidden_size, n_classes)
+        self.classifier = StudentClassificationHead(hidden_size, n_classes)
         
 
     def forward(self, x: torch.Tensor):
-        x = self.base_model(x)[1]
+        x = self.base_model(x)[0]
         x = self.classifier(x)
         return x
 
@@ -111,16 +110,28 @@ def LLRD(config, model):
     return optimizer_grouped_parameters
 
 class Ensemble(nn.Module):
-    def __init__(self, models: List[nn.Module]):
+    def __init__(self, base_model: str, weights: List[str], device: str = "cuda"):
         super().__init__()
-        self.models = [freeze(model) for model in models]
+        weights = [torch.load(weight) for weight in weights]
+        self.models = self._load_models(base_model, weights, device)
 
     def forward(self, x):
         predictions = []
         for model in self.models:
             predictions.append(model(x))
         return torch.mean(torch.stack(predictions), dim=0)
-
+    
+    def _load_models(self, base_model, weights, device):
+        
+        base_model = base_model.to(device)
+        models = []
+        
+        for weight in weights:
+            weight = torch.load(weight)
+            model = copy.deepcopy(base_model)
+            model.load_state_dict(weight)
+            models.append(freeze(model))
+        
 def freeze(model):
 
     model.eval()

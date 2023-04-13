@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 from typing import Type, Optional
 from torch.utils.data import DataLoader
 import torch.nn as nn
-from lumen_irmas.modeling.loss import DistillationLoss
+from lumen_irmas.modeling.loss import HardDistillationLoss
 
 
 class BaseLearner(ABC):
@@ -87,7 +87,7 @@ class Learner(BaseLearner):
 
         if distill:
             print("Distilling knowledge...", flush=True)
-        
+
         loop = tqdm(self.train_dl, leave=False)
         self.model.train()
 
@@ -104,8 +104,7 @@ class Learner(BaseLearner):
                 predictions = self.model(Xb)
 
                 if distill:
-                    teacher_outputs = self.teachers(Xb)
-                    loss = self.loss_fn(predictions, teacher_outputs, yb)
+                    loss = self.loss_fn(Xb, predictions, yb)
                 else:
                     loss = self.loss_fn(predictions, yb)
 
@@ -197,12 +196,12 @@ class Learner(BaseLearner):
 
 class KDLearner(Learner):
 
-    def __init__(self, train_dl, valid_dl, student_model, teachers, config):
+    def __init__(self, train_dl, valid_dl, student_model, teachers, thresholds, config):
         super().__init__(train_dl, valid_dl, student_model, config)
 
-        self.teachers = Ensemble(
-            [nn.DataParallel(teacher.to(self.device)) for teacher in teachers])
-        self.loss_fn = DistillationLoss(self.teachers, self.loss_fn)
+        self.teachers = teachers
+        self.loss_fn = HardDistillationLoss(
+            self.teachers, self.loss_fn, thresholds, self.device)
 
     def _train_epoch(self):
         return super()._train_epoch(distill=True)

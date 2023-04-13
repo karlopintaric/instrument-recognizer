@@ -1,4 +1,4 @@
-from sklearn.metrics import hamming_loss, zero_one_loss, f1_score, average_precision_score, roc_curve
+from sklearn.metrics import hamming_loss, zero_one_loss, f1_score, average_precision_score, precision_recall_curve
 import numpy as np
 
 
@@ -29,10 +29,10 @@ def optimize_threshold(preds, targets):
     label_thresholds = np.empty(preds.shape[1])
 
     for i in range(preds.shape[1]):
-        fpr, tpr, thresh = roc_curve(targets[:, i], preds[:, i])
-        J = tpr - fpr
-        ix = np.argmax(J)
-        best_thresh = thresh[ix]
+        precision, recall, thresholds = precision_recall_curve(targets[:, i], preds[:, i])
+        fscore = (2 * precision * recall) / (precision + recall)
+        ix = np.argmax(fscore)
+        best_thresh = thresholds[ix]
         label_thresholds[i] = best_thresh
 
     return label_thresholds
