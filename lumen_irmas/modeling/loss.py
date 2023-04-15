@@ -29,9 +29,9 @@ class BCELoss(nn.Module):
 
 class HardDistillationLoss(nn.Module):
 
-    def __init__(self, teachers: nn.Module, loss_fn: nn.Module, threshold: Union[list, np.array], device: str = "cuda"):
+    def __init__(self, teacher: nn.Module, loss_fn: nn.Module, threshold: Union[list, np.array], device: str = "cuda"):
         super().__init__()
-        self.teacher = teachers
+        self.teacher = teacher
         self.loss_fn = loss_fn
         self.threshold = torch.tensor(threshold).to(device)
 
@@ -39,7 +39,7 @@ class HardDistillationLoss(nn.Module):
 
         outputs_cls, outputs_dist = student_outputs
         
-        teacher_outputs = self.teacher(inputs)
+        teacher_outputs = torch.sigmoid(self.teacher(inputs))
         teacher_labels = (teacher_outputs > self.threshold).float()
 
         base_loss = self.loss_fn(outputs_cls, targets)

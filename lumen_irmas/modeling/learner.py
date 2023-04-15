@@ -187,21 +187,15 @@ class Learner(BaseLearner):
 
         return preds, targets
 
-    def freeze(self):
-        self.model = freeze(self.model)
-
-    def unfreeze(self):
-        self.model = unfreeze(self.model)
-
 
 class KDLearner(Learner):
 
-    def __init__(self, train_dl, valid_dl, student_model, teachers, thresholds, config):
+    def __init__(self, train_dl, valid_dl, student_model, teacher, thresholds, config):
         super().__init__(train_dl, valid_dl, student_model, config)
 
-        self.teachers = teachers.to(self.device)
+        self.teacher = teacher.to(self.device)
         self.loss_fn = HardDistillationLoss(
-            self.teachers, self.loss_fn, thresholds, self.device)
+            self.teacher, self.loss_fn, thresholds, self.device)
 
     def _train_epoch(self):
         return super()._train_epoch(distill=True)

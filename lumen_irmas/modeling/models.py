@@ -2,10 +2,9 @@ import torch
 import torch.nn as nn
 from transformers import ASTModel, ASTConfig
 from warnings import warn
-from typing import Type, List
-import sys
+from typing import List
 import copy
-from lumen_irmas.modeling.models import freeze
+import torch.nn.functional as F
 
 
 class StudentAST(nn.Module):
@@ -14,7 +13,7 @@ class StudentAST(nn.Module):
         super().__init__()
 
         config = ASTConfig(hidden_size=hidden_size,
-                           num_attention_heads=num_heads, intermediate_size=hidden_size*2)
+                           num_attention_heads=num_heads, intermediate_size=hidden_size*4)
         self.base_model = ASTModel(config=config)
         self.classifier = StudentClassificationHead(hidden_size, n_classes)
 
@@ -62,7 +61,7 @@ class ASTPretrained(nn.Module):
         return x
 
 
-def LLRD(config, model):
+def LLRD(config, model: ASTModel):
     try:
         config = config.LLRD
     except:
@@ -111,10 +110,9 @@ def LLRD(config, model):
 
 
 class Ensemble(nn.Module):
-    def __init__(self, base_model: nn.Module, weights: List[str]):
+    def __init__(self, models: List[nn.Module]):
         super().__init__()
-        weights = [torch.load(weight) for weight in weights]
-        self.models = self._load_models(base_model, weights)
+        self.models = models
 
     def forward(self, x):
         predictions = []
@@ -123,22 +121,11 @@ class Ensemble(nn.Module):
         return torch.mean(torch.stack(predictions), dim=0)
 
     def to(self, device: str):
-        self.models = [model.to(device) for model in self.models]
-
-    def _load_models(self, base_model, weights):
-
-        models = []
-
-        for weight in weights:
-            weight = torch.load(weight)
-            model = copy.deepcopy(base_model)
-            model.load_state_dict(weight)
-            models.append(freeze(model))
-
-        return models
+        moved_models = [model.to(device) for model in self.models]
+        return Ensemble(moved_models)
 
 
-def freeze(model):
+def freeze(model: nn.Module):
 
     model.eval()
     for param in model.parameters():
@@ -147,10 +134,64 @@ def freeze(model):
     return model
 
 
-def unfreeze(model):
+def unfreeze(model: nn.Module):
 
     model.train()
     for param in model.parameters():
         param.requires_grad = True
 
     return model
+
+
+def load_models_for_ensemble(base_model: nn.Module, weights: List[str], freeze: bool = True):
+
+    models = []
+
+    for weight in weights:
+        weight = torch.load(weight)
+        model = copy.deepcopy(base_model)
+        model.load_state_dict(weight)
+        if freeze:
+            model = freeze(model)
+        models.append(model)
+
+    return models
+
+def interpolate_params(student: nn.Module, teacher: nn.Module):
+    
+    new_params = {}
+
+    # Iterate over the parameters in the first model
+    for name, param in teacher.base_model.named_parameters():
+        # Scale the parameter using interpolate if its shape is different from that of the second model
+        target_param = student.base_model.state_dict()[name]
+        if param.shape != target_param.shape:
+            
+            squeeze_count = 0
+            permuted = False
+            while param.ndim < 4:
+                param = param.unsqueeze(0)
+                squeeze_count += 1
+            
+            if param.shape[0] > 1:
+                param = param.permute(1,2,3,0)
+                target_param = target_param.permute(1,2,3,0)
+                permuted = True
+                
+            if target_param.ndim < 2:
+                target_param = target_param.unsqueeze(0)
+            
+            scaled_param = F.interpolate(param, size=(target_param.shape[-2:]), mode="bilinear")
+            
+            while squeeze_count > 0:
+                scaled_param = scaled_param.squeeze(0)
+                squeeze_count -= 1
+            
+            if permuted:
+                scaled_param = scaled_param.permute(-1,0,1,2)
+            
+        else:
+            scaled_param = param
+        new_params[name] = scaled_param
+
+    return new_params
