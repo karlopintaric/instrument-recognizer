@@ -8,10 +8,30 @@ import lumen_irmas.modeling.transforms as transform_module
 from lumen_irmas.modeling.utils import init_obj, init_transforms
 from pathlib import Path
 import numpy as np
-from typing import Union, Type, Optional
+from typing import Union, Type, Optional, List, Tuple
 
 
 class IRMASDataset(Dataset):
+    """Dataset class for IRMAS dataset.
+
+    :param audio_dir: Directory containing the audio files
+    :type audio_dir: Union[str, Path]
+    :param preprocess: Preprocessing method to apply to the audio files
+    :type preprocess: Type[Preprocess]
+    :param signal_augments: Signal augmentation method to apply to the audio files, defaults to None
+    :type signal_augments: Optional[Union[Type[Compose], Type[Transform]]], optional
+    :param transforms: Transform method to apply to the audio files, defaults to None
+    :type transforms: Optional[Union[Type[Compose], Type[Transform]]], optional
+    :param spec_augments: Spectrogram augmentation method to apply to the audio files, defaults to None
+    :type spec_augments: Optional[Union[Type[Compose], Type[Transform]]], optional
+    :param subset: Subset of the data to load (train, valid, or test), defaults to "train"
+    :type subset: str, optional
+    :raises AssertionError: Raises an assertion error if subset is not train, valid or test
+    :raises OSError: Raises an OS error if test_songs.txt is not found in the data folder
+    :return: A tuple of the preprocessed audio signal and the corresponding one-hot encoded label
+    :rtype: Tuple[Tensor, Tensor]
+    """
+
     def __init__(self,
                  audio_dir: Union[str, Path],
                  preprocess: Type[Preprocess],
@@ -51,9 +71,23 @@ class IRMASDataset(Dataset):
         self.spec_augments = spec_augments
 
     def __len__(self):
+        """Return the length of the dataset.
+
+        :return: The length of the dataset
+        :rtype: int
+        """
+        
         return len(self.files)
 
     def __getitem__(self, index):
+        """Get an item from the dataset.
+
+        :param index: The index of the item to get
+        :type index: int
+        :return: A tuple of the preprocessed audio signal and the corresponding one-hot encoded label
+        :rtype: Tuple[Tensor, Tensor]
+        """
+        
         sample_path = self.files[index]
         signal = self.preprocess(sample_path)
 
@@ -82,7 +116,16 @@ class IRMASDataset(Dataset):
         return signal, label.float()
 
 
-def collate_fn(data):
+def collate_fn(data: List[Tuple[torch.Tensor, torch.Tensor]]):
+    """
+    Function to collate a batch of audio signals and their corresponding labels.
+
+    :param data: A list of tuples containing the audio signals and their corresponding labels.
+    :type data: List[Tuple[torch.Tensor, torch.Tensor]]
+
+    :return: A tuple containing the batch of audio signals and their corresponding labels.
+    :rtype: Tuple[torch.Tensor, torch.Tensor]
+    """
 
     features, labels = zip(*data)
     features = [item.squeeze().T for item in features]
@@ -92,8 +135,19 @@ def collate_fn(data):
     return features, labels
 
 
-def get_loader(config, subset: str):
+def get_loader(config: dict, subset: str):
+    """
+    Function to create a PyTorch DataLoader for a given subset of the IRMAS dataset.
 
+    :param config: A configuration object.
+    :type config: Any
+    :param subset: The subset of the dataset to use. Can be "train" or "valid".
+    :type subset: str
+
+    :return: A PyTorch DataLoader for the specified subset of the dataset.
+    :rtype: torch.utils.data.DataLoader
+    """
+    
     dst = IRMASDataset(
         config.train_dir if subset == "train" else config.valid_dir,
         preprocess=init_obj(

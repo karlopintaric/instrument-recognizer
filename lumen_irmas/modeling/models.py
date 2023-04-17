@@ -8,32 +8,74 @@ import torch.nn.functional as F
 
 
 class StudentAST(nn.Module):
+    """
+    A student model for audio classification using the AST architecture.
 
-    def __init__(self, n_classes: int, hidden_size: int = 384, num_heads: int = 6):
+    :param n_classes: The number of classes to classify.
+    :type n_classes: int
+    :param hidden_size: The number of units in the hidden layers, defaults to 384.
+    :type hidden_size: int, optional
+    :param num_heads: The number of attention heads to use, defaults to 6.
+    :type num_heads: int, optional
+    :param dropout: The dropout probability to use, defaults to 0.25.
+    :type dropout: float, optional
+    """
+    
+    def __init__(self, n_classes: int, hidden_size: int = 384, num_heads: int = 6, dropout: float = 0.25):
         super().__init__()
 
         config = ASTConfig(hidden_size=hidden_size,
                            num_attention_heads=num_heads, intermediate_size=hidden_size*4)
         self.base_model = ASTModel(config=config)
-        self.classifier = StudentClassificationHead(hidden_size, n_classes)
+        self.classifier = StudentClassificationHead(hidden_size, n_classes, dropout)
 
     def forward(self, x: torch.Tensor):
+        """
+        Forward pass of the student model.
+
+        :param x: The input tensor of shape [batch_size, sequence_length, input_dim].
+        :type x: torch.Tensor
+        :return: The output tensor of shape [batch_size, n_classes].
+        :rtype: torch.Tensor
+        """
+        
         x = self.base_model(x)[0]
         x = self.classifier(x)
         return x
 
 
 class StudentClassificationHead(nn.Module):
-    def __init__(self, emb_size: int, n_classes: int):
+    """
+    A classification head for the student model.
+
+    :param emb_size: The size of the embedding.
+    :type emb_size: int
+    :param n_classes: The number of classes to classify.
+    :type n_classes: int
+    :param dropout: The dropout probability to use.
+    :type dropout: float
+    """
+    
+    def __init__(self, emb_size: int, n_classes: int, dropout: float):
         super().__init__()
 
         self.cls_head = nn.Linear(emb_size, n_classes)
         self.dist_head = nn.Linear(emb_size, n_classes)
+        self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, x: torch.Tensor):
+        """
+        Forward pass of the classification head.
+
+        :param x: The input tensor of shape [batch_size, emb_size*2].
+        :type x: torch.Tensor
+        :return: The output tensor of shape [batch_size, n_classes].
+        :rtype: torch.Tensor
+        """
+        
         x_cls, x_dist = x[:, 0], x[:, 1]
-        x_cls_head = self.cls_head(x_cls)
-        x_dist_head = self.dist_head(x_dist)
+        x_cls_head = self.dropout(self.cls_head(x_cls))
+        x_dist_head = self.dropout(self.dist_head(x_dist))
 
         if self.training:
             x = x_cls_head, x_dist_head
@@ -44,6 +86,20 @@ class StudentClassificationHead(nn.Module):
 
 
 class ASTPretrained(nn.Module):
+    """
+    This class implements a PyTorch module for a pre-trained Audio Set Transformer (AST) model 
+    fine-tuned on MIT's dataset for audio event classification.
+
+    :param n_classes: The number of classes for audio event classification.
+    :type n_classes: int
+    :param dropout: The dropout probability for the fully connected layer, defaults to 0.5.
+    :type dropout: float, optional
+    :raises ValueError: If n_classes is not positive.
+    :raises TypeError: If dropout is not a float or is not between 0 and 1.
+    :return: The output tensor of shape [batch_size, n_classes] containing the probabilities of each class.
+    :rtype: torch.Tensor
+    """
+    
     def __init__(self, n_classes: int, dropout: float = 0.5):
         super().__init__()
         self.base_model = ASTModel.from_pretrained(
@@ -56,12 +112,36 @@ class ASTPretrained(nn.Module):
             nn.Linear(fc_in, n_classes))
 
     def forward(self, x):
+        """Passes the input tensor through the pre-trained Audio Set Transformer (AST) model followed by a fully connected layer.
+
+        :param x: The input tensor of shape [batch_size, seq_len, num_features].
+        :type x: torch.Tensor
+        :return: The output tensor of shape [batch_size, n_classes] containing the probabilities of each class.
+        :rtype: torch.Tensor
+        :raises ValueError: If the shape of x is not [batch_size, seq_len, num_features].
+        """
+        
         x = self.base_model(x)[1]
         x = self.classifier(x)
         return x
 
 
 def LLRD(config, model: ASTModel):
+    """
+    LLRD (Layer-wise Learning Rate Decay) function computes the learning rate for each layer in a deep neural network
+    using a specific decay rate and a base learning rate for the optimizer.
+
+    :param config: A configuration object that contains the parameters required for LLRD.
+    :type config: Any
+    :param model: A PyTorch neural network model.
+    :type model: ASTModel
+
+    :raises Warning: If the configuration object does not contain the LLRD parameters.
+
+    :return: A dictionary containing the optimizer parameters (parameters, weight decay, and learning rate) for each layer.
+    :rtype: dict
+    """
+    
     try:
         config = config.LLRD
     except:
@@ -108,24 +188,17 @@ def LLRD(config, model: ASTModel):
 
     return optimizer_grouped_parameters
 
-
-class Ensemble(nn.Module):
-    def __init__(self, models: List[nn.Module]):
-        super().__init__()
-        self.models = models
-
-    def forward(self, x):
-        predictions = []
-        for model in self.models:
-            predictions.append(model(x))
-        return torch.mean(torch.stack(predictions), dim=0)
-
-    def to(self, device: str):
-        moved_models = [model.to(device) for model in self.models]
-        return Ensemble(moved_models)
-
-
 def freeze(model: nn.Module):
+    """
+    Freeze function sets the requires_grad attribute to False for all parameters in the given PyTorch neural network model.
+    This is used to freeze the weights of the model during training or inference.
+
+    :param model: A PyTorch neural network model.
+    :type model: nn.Module
+
+    :return: The same model with requires_grad attribute set to False for all parameters.
+    :rtype: nn.Module
+    """
 
     model.eval()
     for param in model.parameters():
