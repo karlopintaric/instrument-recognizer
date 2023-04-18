@@ -1,13 +1,8 @@
 import torch
 from torchvision import transforms
-from lumen_irmas import FeatureExtractor
+from lumen_irmas import FeatureExtractor, PreprocessPipeline
 from lumen_irmas import CLASSES
 from lumen_irmas import ASTPretrained
-import os
-import sys
-sys.path.append(os.path.abspath(os.path.join(
-    __file__, os.path.pardir, os.path.pardir)))
-
 
 def load_model():
     model = ASTPretrained(n_classes=11)

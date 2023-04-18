@@ -1,16 +1,18 @@
-from tqdm.autonotebook import tqdm
-import torch
-import torch.optim as optim
-import numpy as np
-import wandb
-import lumen_irmas.modeling.metrics as metrics_module
-import lumen_irmas.modeling.loss as loss_module
-from lumen_irmas.modeling.utils import init_obj
-from lumen_irmas.modeling.models import LLRD
 from abc import ABC, abstractmethod
-from torch.utils.data import DataLoader
+
+import numpy as np
+import torch
 import torch.nn as nn
+import torch.optim as optim
+import wandb
+from torch.utils.data import DataLoader
+from tqdm.autonotebook import tqdm
+
+import lumen_irmas.modeling.loss as loss_module
+import lumen_irmas.modeling.metrics as metrics_module
 from lumen_irmas.modeling.loss import HardDistillationLoss
+from lumen_irmas.modeling.models import layerwise_lr_decay
+from lumen_irmas.modeling.utils import init_obj
 
 
 class BaseLearner(ABC):
@@ -27,9 +29,7 @@ class BaseLearner(ABC):
     :type config: Any
     """
 
-    def __init__(self,
-                 train_dl: DataLoader, valid_dl: DataLoader,
-                 model: nn.Module, config):
+    def __init__(self, train_dl: DataLoader, valid_dl: DataLoader, model: nn.Module, config):
         self.train_dl = train_dl
         self.valid_dl = valid_dl
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -37,24 +37,29 @@ class BaseLearner(ABC):
         self.config = config
 
     @abstractmethod
-    def fit(self,):
+    def fit(
+        self,
+    ):
         """Abstract method for fitting the model."""
 
         pass
 
     @abstractmethod
-    def _train_epoch(self,):
+    def _train_epoch(
+        self,
+    ):
         """Abstract method for training the model for one epoch."""
         pass
 
     @abstractmethod
-    def _test_epoch(self,):
+    def _test_epoch(
+        self,
+    ):
         """Abstract method for testing the model for one epoch."""
         pass
 
 
 class Learner(BaseLearner):
-
     def __init__(self, train_dl: DataLoader, valid_dl: DataLoader, model: nn.Module, config):
         """A class that inherits from the BaseLearner class and represents a learner object.
 
@@ -70,16 +75,18 @@ class Learner(BaseLearner):
 
         super().__init__(train_dl, valid_dl, model, config)
 
-        self.model = torch.nn.DataParallel(module=self.model,
-                                           device_ids=[i for i in range(config.num_gpus)])
+        self.model = torch.nn.DataParallel(module=self.model, device_ids=list(range(config.num_gpus)))
         self.loss_fn = init_obj(self.config.loss, loss_module)
-        params = LLRD(self.config, self.model)
+        params = layerwise_lr_decay(self.config, self.model)
         self.optimizer = init_obj(self.config.optimizer, optim, params)
-        self.scheduler = init_obj(self.config.scheduler, optim.lr_scheduler,
-                                  self.optimizer,
-                                  max_lr=[param["lr"] for param in params],
-                                  epochs=self.config.EPOCHS,
-                                  steps_per_epoch=int(np.ceil(len(train_dl)/self.config.num_accum)))
+        self.scheduler = init_obj(
+            self.config.scheduler,
+            optim.lr_scheduler,
+            self.optimizer,
+            max_lr=[param["lr"] for param in params],
+            epochs=self.config.EPOCHS,
+            steps_per_epoch=int(np.ceil(len(train_dl) / self.config.num_accum)),
+        )
 
         self.verbose = self.config.verbose
         self.metrics = MetricTracker(self.config.metrics, self.verbose)
@@ -99,19 +106,13 @@ class Learner(BaseLearner):
         loop = tqdm(range(self.config.EPOCHS), leave=False)
 
         for epoch in loop:
-
             train_loss = self._train_epoch()
             val_loss = self._test_epoch()
 
-            wandb.log({"train_loss": train_loss,
-                       "val_loss": val_loss,
-                       "epoch": epoch+1})
-
-            # self.scheduler.step(val_loss)
+            wandb.log({"train_loss": train_loss, "val_loss": val_loss, "epoch": epoch + 1})
 
             if self.verbose:
-                print(
-                    f'| EPOCH: {epoch+1} | train_loss: {train_loss:.3f} | val_loss: {val_loss:.3f} |\n')
+                print(f"| EPOCH: {epoch+1} | train_loss: {train_loss:.3f} | val_loss: {val_loss:.3f} |\n")
                 self.metrics.display()
 
         torch.save(self.model.module.state_dict(), f"{model_name}.pth")
@@ -135,17 +136,16 @@ class Learner(BaseLearner):
         num_batches = len(self.train_dl)
         train_loss = 0
 
-        for idx, (Xb, yb) in enumerate(loop):
-
-            Xb = Xb.to(self.device)
+        for idx, (xb, yb) in enumerate(loop):
+            xb = xb.to(self.device)
             yb = yb.to(self.device)
 
             # forward
             with torch.autocast(device_type=self.device, dtype=torch.float16):
-                predictions = self.model(Xb)
+                predictions = self.model(xb)
 
                 if distill:
-                    loss = self.loss_fn(Xb, predictions, yb)
+                    loss = self.loss_fn(xb, predictions, yb)
                 else:
                     loss = self.loss_fn(predictions, yb)
 
@@ -153,8 +153,7 @@ class Learner(BaseLearner):
 
             # backward
             self.scaler.scale(loss).backward()
-            wandb.log({f'lr_param_group_{i}': lr for i,
-                      lr in enumerate(self.scheduler.get_last_lr())})
+            wandb.log({f"lr_param_group_{i}": lr for i, lr in enumerate(self.scheduler.get_last_lr())})
 
             if ((idx + 1) % self.config.num_accum == 0) or (idx + 1 == num_batches):
                 self.scaler.step(self.optimizer)
@@ -165,12 +164,11 @@ class Learner(BaseLearner):
             # update loop
             loop.set_postfix(loss=loss.item())
             self.train_step += 1
-            wandb.log({"train_loss_per_batch": loss.item(),
-                       "train_step": self.train_step})
+            wandb.log({"train_loss_per_batch": loss.item(), "train_step": self.train_step})
             train_loss += loss.item()
 
             if distill:
-                if (idx+1) % 5000 == 0:
+                if (idx + 1) % 5000 == 0:
                     val_loss = self._test_epoch()
                     wandb.log({"val_loss": val_loss})
 
@@ -195,13 +193,12 @@ class Learner(BaseLearner):
         test_loss = 0
 
         with torch.no_grad():
-            for Xb, yb in loop:
-                Xb, yb = Xb.to(self.device), yb.to(self.device)
-                pred = self.model(Xb)
+            for xb, yb in loop:
+                xb, yb = xb.to(self.device), yb.to(self.device)
+                pred = self.model(xb)
                 loss = self.loss_fn(pred, yb).item()
                 self.test_step += 1
-                wandb.log({"valid_loss_per_batch": loss,
-                           "test_step": self.test_step})
+                wandb.log({"valid_loss_per_batch": loss, "test_step": self.test_step})
                 test_loss += loss
 
                 pred = torch.sigmoid(pred)
@@ -215,7 +212,6 @@ class Learner(BaseLearner):
         return test_loss
 
     def get_preds(self):
-
         loop = tqdm(self.valid_dl, leave=False)
         self.model.eval()
 
@@ -223,9 +219,9 @@ class Learner(BaseLearner):
         targets = []
 
         with torch.no_grad():
-            for Xb, yb in loop:
-                Xb, yb = Xb.to(self.device), yb.to(self.device)
-                pred = self.model(Xb)
+            for xb, yb in loop:
+                xb, yb = xb.to(self.device), yb.to(self.device)
+                pred = self.model(xb)
                 pred = torch.sigmoid(pred)
                 preds.extend(pred.cpu().numpy())
                 targets.extend(yb.cpu().numpy())
@@ -257,8 +253,7 @@ class KDLearner(Learner):
         super().__init__(train_dl, valid_dl, student_model, config)
 
         self.teacher = teacher.to(self.device)
-        self.loss_fn = HardDistillationLoss(
-            self.teacher, self.loss_fn, thresholds, self.device)
+        self.loss_fn = HardDistillationLoss(self.teacher, self.loss_fn, thresholds, self.device)
 
     def _train_epoch(self):
         """
@@ -274,9 +269,9 @@ class KDLearner(Learner):
 class MetricTracker:
     """
     Metric Tracker class for tracking evaluation metrics during model validation.
-    his class is used to track and display evaluation metrics during model validation. 
-    It keeps track of the results of the provided metric functions for each validation batch, 
-    and logs them to Weights & Biases using wandb.log(). The display() method can be used 
+    his class is used to track and display evaluation metrics during model validation.
+    It keeps track of the results of the provided metric functions for each validation batch,
+    and logs them to Weights & Biases using wandb.log(). The display() method can be used
     to print the tracked metric results, if verbose is set to True during initialization.
 
     :param metrics: List of metric functions to track
@@ -286,8 +281,7 @@ class MetricTracker:
     """
 
     def __init__(self, metrics, verbose: bool = True):
-        self.metrics_fn = [getattr(metrics_module, metric)
-                           for metric in metrics]
+        self.metrics_fn = [getattr(metrics_module, metric) for metric in metrics]
         self.verbose = verbose
         self.result = None
 
@@ -301,12 +295,11 @@ class MetricTracker:
         :type targets: torch.Tensor
         """
 
-        self.result = {metric.__name__: metric(
-            preds, targets) for metric in self.metrics_fn}
+        self.result = {metric.__name__: metric(preds, targets) for metric in self.metrics_fn}
         wandb.log(self.result)
 
     def display(self):
         """Display the tracked metric results."""
 
         for k, v in self.result.items():
-            print(f'{k}: {v:.2f}')
+            print(f"{k}: {v:.2f}")

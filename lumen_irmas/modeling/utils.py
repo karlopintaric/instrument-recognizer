@@ -1,14 +1,14 @@
 from glob import glob
-import yaml
-import torch.optim as optim
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Union
+
 import librosa
 import numpy as np
-from pathlib import Path
+import torch.optim as optim
+import yaml
 
-CLASSES = ['tru', 'sax', 'vio', 'gac', 'org',
-           'cla', 'flu', 'voi', 'gel', 'cel', 'pia']
+CLASSES = ["tru", "sax", "vio", "gac", "org", "cla", "flu", "voi", "gel", "cel", "pia"]
 
 
 def get_wav_files(base_path):
@@ -43,7 +43,8 @@ def init_transforms(fn_dict, module):
     """
     Initialize a list of transforms from a dictionary of function names and their parameters.
 
-    :param fn_dict: A dictionary where keys are the names of transform functions and values are dictionaries of parameters.
+    :param fn_dict: A dictionary where keys are the names of transform functions
+        and values are dictionaries of parameters.
     :type fn_dict: Dict[str, Dict[str, Any]]
 
     :param module: The module where the transform functions are defined.
@@ -114,7 +115,7 @@ def init_obj(fn_dict, module, *args, **kwargs):
     fn_args = fn_dict[name]
 
     if fn_args is not None:
-        assert all([k not in fn_args for k in kwargs])
+        assert all(k not in fn_args for k in kwargs)
         fn_args.update(kwargs)
 
         return fn(*args, **fn_args)
@@ -133,10 +134,10 @@ class ComposeTransforms:
     def __init__(self, transforms: list):
         self.transforms = transforms
 
-    def __call__(self, input, *args):
+    def __call__(self, data, *args):
         for t in self.transforms:
-            input = t(input, *args)
-        return input
+            data = t(data, *args)
+        return data
 
 
 def load_raw_file(path: Union[str, Path]):
@@ -195,12 +196,12 @@ def get_pitch(signal, sr):
 
     eps = 1e-8
     fmin = librosa.note_to_hz("C2")
-    fmax = librosa.note_to_hz('C7')
+    fmax = librosa.note_to_hz("C7")
 
     pitch, _, _ = librosa.pyin(y=signal, sr=sr, fmin=fmin, fmax=fmax)
 
     if not np.isnan(pitch).all():
-        mean_log_pitch = np.nanmean(np.log(pitch+eps))
+        mean_log_pitch = np.nanmean(np.log(pitch + eps))
     else:
         mean_log_pitch = None
 
@@ -209,7 +210,7 @@ def get_pitch(signal, sr):
 
 def get_file_info(path: Union[str, Path], extract_music_features: bool):
     """
-    Loads an audio file and computes some basic information about it, 
+    Loads an audio file and computes some basic information about it,
     such as pitch, BPM, onset time, duration, sample rate, and number of channels.
 
     :param path: The path to the audio file.
@@ -234,13 +235,18 @@ def get_file_info(path: Union[str, Path], extract_music_features: bool):
         bpm = get_bpm(signal, sr)
         onset = get_onset(signal, sr)
 
-    return {"path": path, "pitch": pitch, "bpm": bpm,
-            "onset": onset, "sample_rate": sr,
-            "duration": duration, "channels": channels}
+    return {
+        "path": path,
+        "pitch": pitch,
+        "bpm": bpm,
+        "onset": onset,
+        "sample_rate": sr,
+        "duration": duration,
+        "channels": channels,
+    }
 
 
-def sync_pitch(file_to_sync: np.ndarray, sr: int,
-               pitch_base: float, pitch: float):
+def sync_pitch(file_to_sync: np.ndarray, sr: int, pitch_base: float, pitch: float):
     """
     Shift the pitch of an audio file to match a new pitch value.
 
@@ -256,19 +262,17 @@ def sync_pitch(file_to_sync: np.ndarray, sr: int,
     :rtype: np.ndarray
     """
 
-    assert np.ndim(
-        file_to_sync) == 1, "Input array has more than one dimensions"
+    assert np.ndim(file_to_sync) == 1, "Input array has more than one dimensions"
 
     if any(np.isnan(x) for x in [pitch_base, pitch]):
         return file_to_sync
 
-    steps = np.round(12 * np.log2(np.exp(pitch_base)/np.exp(pitch)), 0)
+    steps = np.round(12 * np.log2(np.exp(pitch_base) / np.exp(pitch)), 0)
 
     return librosa.effects.pitch_shift(y=file_to_sync, sr=sr, n_steps=steps)
 
 
-def sync_bpm(file_to_sync: np.ndarray, sr: int,
-             bpm_base: float, bpm: float):
+def sync_bpm(file_to_sync: np.ndarray, sr: int, bpm_base: float, bpm: float):
     """
     Stretch or compress the duration of an audio file to match a new tempo.
 
@@ -284,17 +288,15 @@ def sync_bpm(file_to_sync: np.ndarray, sr: int,
     :rtype: np.ndarray
     """
 
-    assert np.ndim(
-        file_to_sync) == 1, "Input array has more than one dimensions"
+    assert np.ndim(file_to_sync) == 1, "Input array has more than one dimensions"
 
     if any(np.isnan(x) for x in [bpm_base, bpm]):
         return file_to_sync
 
-    return librosa.effects.time_stretch(y=file_to_sync, rate=bpm_base/bpm)
+    return librosa.effects.time_stretch(y=file_to_sync, rate=bpm_base / bpm)
 
 
-def sync_onset(file_to_sync: np.ndarray, sr: int,
-               onset_base: float, onset: float):
+def sync_onset(file_to_sync: np.ndarray, sr: int, onset_base: float, onset: float):
     """
     Sync the onset of an audio signal by adding or removing silence at the beginning.
 
@@ -311,13 +313,12 @@ def sync_onset(file_to_sync: np.ndarray, sr: int,
     :rtype: np.ndarray
     """
 
-    assert np.ndim(
-        file_to_sync) == 1, "Input array has more than one dimensions"
+    assert np.ndim(file_to_sync) == 1, "Input array has more than one dimensions"
 
     if any(np.isnan(x) for x in [onset_base, onset]):
         return file_to_sync
 
-    diff = int(round(abs(onset_base*sr - onset*sr), 0))
+    diff = int(round(abs(onset_base * sr - onset * sr), 0))
 
     if onset_base > onset:
         return np.pad(file_to_sync, (diff, 0), mode="constant", constant_values=0)
@@ -327,6 +328,7 @@ def sync_onset(file_to_sync: np.ndarray, sr: int,
 
 if __name__ == "__main__":
     import models
+
     config = parse_config("./config.yaml")
     model = models.RNN(128, 64, 3, 11)
     optimizer = init_obj(config.optimizer, optim, model.parameters())

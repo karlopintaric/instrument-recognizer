@@ -1,22 +1,27 @@
-import os
 import itertools
+import os
 from pathlib import Path
+from typing import List, Optional, Tuple, Union
+
 import librosa
-import soundfile as sf
 import numpy as np
-from tqdm.autonotebook import tqdm
-from joblib import Parallel, delayed
 import pandas as pd
-from lumen_irmas.modeling.utils import get_file_info, sync_bpm, sync_onset, sync_pitch
-from lumen_irmas.modeling.transforms import LabelsFromTxt, ParentMultilabel
-from typing import Union, List, Tuple, Optional
+import soundfile as sf
+from joblib import Parallel, delayed
 from sklearn.model_selection import StratifiedGroupKFold
+from tqdm.autonotebook import tqdm
+
+from lumen_irmas.modeling.transforms import LabelsFromTxt, ParentMultilabel
+from lumen_irmas.modeling.utils import get_file_info, sync_bpm, sync_onset, sync_pitch
 
 
-def generate_metadata(data_dir: Union[str, Path],
-                      save_path: str = ".", subset: str = "train",
-                      extract_music_features: bool = False,
-                      n_jobs: int = -2):
+def generate_metadata(
+    data_dir: Union[str, Path],
+    save_path: str = ".",
+    subset: str = "train",
+    extract_music_features: bool = False,
+    n_jobs: int = -2,
+):
     """
     Generate metadata CSV file containing information about audio files in a directory.
 
@@ -24,7 +29,7 @@ def generate_metadata(data_dir: Union[str, Path],
     :type data_dir: Union[str, Path]
     :param save_path: Directory path to save metadata CSV file.
     :type save_path: str
-    :param subset: Subset of the dataset (train or test), defaults to "train".
+    :param subset: Subset of the dataset (train or test), defaults to 'train'.
     :type subset: str
     :param extract_music_features: Flag to indicate whether to extract music features or not, defaults to False.
     :type extract_music_features: bool
@@ -38,30 +43,23 @@ def generate_metadata(data_dir: Union[str, Path],
     data_dir = Path(data_dir) if isinstance(data_dir, str) else data_dir
 
     if subset == "train":
-        pattern = '(.*)__[\d]+$'
+        pattern = r"(.*)__[\d]+$"
         label_extractor = ParentMultilabel()
     else:
-        pattern = '(.*)-[\d]+$'
+        pattern = r"(.*)-[\d]+$"
         label_extractor = LabelsFromTxt()
 
     sound_files = list(data_dir.glob("**/*.wav"))
+    output = Parallel(n_jobs=n_jobs)(delayed(get_file_info)(path, extract_music_features) for path in tqdm(sound_files))
 
-    # for path in tqdm(sound_files):
-    #    output = get_file_info(path, extract_music_features)
-    output = Parallel(n_jobs=n_jobs)(delayed(get_file_info)(
-        path, extract_music_features) for path in tqdm(sound_files))
-
-    cols = ["path", "pitch", "bpm", "onset",
-            "sample_rate", "duration", "channels"]
     df = pd.DataFrame(data=output)
 
     df["fname"] = df.path.map(lambda x: Path(x).stem)
     df["song_name"] = df.fname.str.extract(pattern)
     df["inst"] = df.path.map(lambda x: "-".join(list(label_extractor(x))))
     df["label_count"] = df.inst.map(lambda x: len(x.split("-")))
-    # df = df.drop(columns="path")
 
-    df.to_csv(f'{save_path}/metadata_{subset}.csv', index=False)
+    df.to_csv(f"{save_path}/metadata_{subset}.csv", index=False)
 
     return df
 
@@ -83,21 +81,22 @@ def create_test_split(metadata_path: str, txt_save_path: str, random_state: Opti
     """
 
     df = pd.read_csv(metadata_path)
-    kf = StratifiedGroupKFold(n_splits=2, shuffle=True,
-                              random_state=random_state)
+    kf = StratifiedGroupKFold(n_splits=2, shuffle=True, random_state=random_state)
     splits = kf.split(df.fname, df.inst, groups=df.song_name)
     _, test = list(splits)[0]
 
     test_songs = df.iloc[test].fname.sort_values().to_numpy()
 
-    with open(f'{txt_save_path}/test_songs.txt', 'w') as f:
+    with open(f"{txt_save_path}/test_songs.txt", "w") as f:
         # iterate over the list of names and write each one to a new line in the file
         for song in test_songs:
-            f.write(song + '\n')
+            f.write(song + "\n")
 
 
 class IRMASPreprocessor:
-    """A class to preprocess IRMAS dataset metadata and create a mapping between file paths and their corresponding instrument labels.
+    """
+    A class to preprocess IRMAS dataset metadata and create a mapping between
+    file paths and their corresponding instrument labels.
 
     :param metadata: A pandas DataFrame or path to csv file containing metadata, defaults to None
     :type metadata: Union[pd.DataFrame, str], optional
@@ -112,29 +111,23 @@ class IRMASPreprocessor:
     :rtype: IRMASPreprocessor
     """
 
-    def __init__(self, metadata: Union[pd.DataFrame, str] = None,
-                 data_dir: Union[str, Path] = None,
-                 sample_rate: int = 16000):
-
+    def __init__(
+        self, metadata: Union[pd.DataFrame, str] = None, data_dir: Union[str, Path] = None, sample_rate: int = 16000
+    ):
         if metadata is not None:
-            self.metadata = pd.read_csv(metadata) if isinstance(
-                metadata, str) else metadata
+            self.metadata = pd.read_csv(metadata) if isinstance(metadata, str) else metadata
             if data_dir is not None:
-                self.metadata["path"] = self.metadata.apply(
-                    lambda x: f'{data_dir}/{x.inst}/{x.fname}.wav', axis=1
-                )
+                self.metadata["path"] = self.metadata.apply(lambda x: f"{data_dir}/{x.inst}/{x.fname}.wav", axis=1)
         else:
             assert data_dir is not None, "No metadata found. Need to provide data directory"
-            self.metadata = generate_metadata(data_dir=data_dir,
-                                              subset="train",
-                                              extract_music_features=True)
+            self.metadata = generate_metadata(data_dir=data_dir, subset="train", extract_music_features=True)
 
         self.instruments = self.metadata.inst.unique()
         self.sample_rate = sample_rate
 
-    def preprocess_and_mix(self, save_dir: str, sync: str,
-                           ordered: bool, num_track_to_mix: int, n_jobs: int = -2):
-        """A method to preprocess and mix audio tracks from the IRMAS dataset.
+    def preprocess_and_mix(self, save_dir: str, sync: str, ordered: bool, num_track_to_mix: int, n_jobs: int = -2):
+        """
+        A method to preprocess and mix audio tracks from the IRMAS dataset.
 
         :param save_dir: The directory to save the preprocessed and mixed tracks
         :type save_dir: str
@@ -153,22 +146,19 @@ class IRMASPreprocessor:
         :rtype: None
         """
 
-        combs = itertools.combinations(
-            self.instruments, r=num_track_to_mix)
+        combs = itertools.combinations(self.instruments, r=num_track_to_mix)
 
         if ordered:
             self.metadata = self.metadata.sort_values(by=sync)
         else:
             self.metadata = self.metadata.sample(frac=1)
 
-        # for insts in tqdm(combs):
-        #    self._mix(insts, save_dir, sync)
-        Parallel(n_jobs=n_jobs)(delayed(self._mix)
-                                (insts, save_dir, sync) for (insts) in tqdm(combs))
+        Parallel(n_jobs=n_jobs)(delayed(self._mix)(insts, save_dir, sync) for (insts) in tqdm(combs))
         print("Parallel preprocessing done!")
 
     def _mix(self, insts: Tuple[str], save_dir: str, sync: str):
-        """A private method to mix audio tracks and save them to disk.
+        """
+        A private method to mix audio tracks and save them to disk.
 
         :param insts: A tuple of instrument labels to mix
         :type insts: Tuple[str]
@@ -187,8 +177,7 @@ class IRMASPreprocessor:
 
         insts_files_list = [self._get_filepaths(inst) for inst in insts]
 
-        max_length = max([inst_files.shape[0]
-                         for inst_files in insts_files_list])
+        max_length = max([inst_files.shape[0] for inst_files in insts_files_list])
         for i, inst_files in enumerate(insts_files_list):
             if inst_files.shape[0] < max_length:
                 diff = max_length - inst_files.shape[0]
@@ -221,7 +210,7 @@ class IRMASPreprocessor:
 
     def _mix_files_and_save(self, insts_files_list: List[List[Path]], save_dir: str, sync: str):
         """
-        A private method to mix audio files, synchronize them using a given column name in the metadata, 
+        A private method to mix audio files, synchronize them using a given column name in the metadata,
         and save the mixed file to disk.
 
         :param insts_files_list: A list of lists of file paths corresponding to each instrument label
@@ -242,8 +231,7 @@ class IRMASPreprocessor:
             new_name = f"{'-'.join([file.stem for file in files_to_sync])}.wav"
 
             synced_file = self._sync_and_mix(files_to_sync, sync)
-            sf.write(os.path.join(save_dir, new_name),
-                     synced_file, samplerate=self.sample_rate)
+            sf.write(os.path.join(save_dir, new_name), synced_file, samplerate=self.sample_rate)
 
     def _sync_and_mix(self, files_to_sync: List[Path], sync: str):
         """
@@ -251,7 +239,7 @@ class IRMASPreprocessor:
 
         :param files_to_sync: A list of file paths to synchronize and mix.
         :type files_to_sync: List[Path]
-        :param sync: The type of synchronization to use. One of ["bpm", "pitch", None].
+        :param sync: The type of synchronization to use. One of ['bpm', 'pitch', None].
         :type sync: str, optional
         :raises KeyError: If any file in files_to_sync is not found in metadata.
         :return: The synchronized and mixed audio signal.
@@ -259,8 +247,9 @@ class IRMASPreprocessor:
         """
 
         cols = ["pitch", "bpm", "onset"]
-        files_metadata_df = self.metadata.loc[self.metadata.path.isin(
-            [str(file_path) for file_path in files_to_sync])].set_index("path")
+        files_metadata_df = self.metadata.loc[
+            self.metadata.path.isin([str(file_path) for file_path in files_to_sync])
+        ].set_index("path")
 
         num_files = files_metadata_df.shape[0]
         if num_files != len(files_to_sync):
@@ -272,24 +261,23 @@ class IRMASPreprocessor:
         metadata_dict = files_metadata_df.to_dict("index")
 
         for i, (file_to_sync_path, features) in enumerate(metadata_dict.items()):
-
             file_to_sync, sr_sync = librosa.load(file_to_sync_path, sr=None)
 
             if sr_sync != 44100:
-                file_to_sync = librosa.resample(
-                    y=file_to_sync, orig_sr=sr_sync, target_sr=self.sample_rate)
+                file_to_sync = librosa.resample(y=file_to_sync, orig_sr=sr_sync, target_sr=self.sample_rate)
 
             if sync == "bpm":
-                file_to_sync = sync_bpm(
-                    file_to_sync, sr_sync, bpm_base=mean_features["bpm"], bpm=features["bpm"])
+                file_to_sync = sync_bpm(file_to_sync, sr_sync, bpm_base=mean_features["bpm"], bpm=features["bpm"])
 
             if sync == "pitch":
                 file_to_sync = sync_pitch(
-                    file_to_sync, sr_sync, pitch_base=mean_features["pitch"], pitch=features["pitch"])
+                    file_to_sync, sr_sync, pitch_base=mean_features["pitch"], pitch=features["pitch"]
+                )
 
             if sync is not None:
                 file_to_sync = sync_onset(
-                    file_to_sync, sr_sync, onset_base=mean_features["onset"], onset=features["onset"])
+                    file_to_sync, sr_sync, onset_base=mean_features["onset"], onset=features["onset"]
+                )
 
             file_to_sync = librosa.util.normalize(file_to_sync)
 
@@ -307,22 +295,22 @@ class IRMASPreprocessor:
 
         return librosa.resample(y=mixed_sound, orig_sr=44100, target_sr=self.sample_rate)
 
-        def _create_save_dir(self, insts: Union[Tuple[str], List[str]], save_dir: str):
-            """
-            Create and return a directory to save instrument-specific files.
+    def _create_save_dir(self, insts: Union[Tuple[str], List[str]], save_dir: str):
+        """
+        Create and return a directory to save instrument-specific files.
 
-            :param insts: A tuple or list of instrument names.
-            :type insts: Union[Tuple[str], List[str]]
-            :param save_dir: The path to the directory where the new directory will be created.
-            :type save_dir: str
-            :return: The path to the newly created directory.
-            :rtype: str
-            """
+        :param insts: A tuple or list of instrument names.
+        :type insts: Union[Tuple[str], List[str]]
+        :param save_dir: The path to the directory where the new directory will be created.
+        :type save_dir: str
+        :return: The path to the newly created directory.
+        :rtype: str
+        """
 
-            new_dir_name = '-'.join(insts)
-            new_dir_path = os.path.join(save_dir, new_dir_name)
-            os.makedirs(new_dir_path, exist_ok=True)
-            return new_dir_path
+        new_dir_name = "-".join(insts)
+        new_dir_path = os.path.join(save_dir, new_dir_name)
+        os.makedirs(new_dir_path, exist_ok=True)
+        return new_dir_path
 
     @classmethod
     def from_metadata(cls, metadata_path: str, **kwargs):
@@ -341,12 +329,8 @@ class IRMASPreprocessor:
 
 
 if __name__ == "__main__":
-
-    data_dir = '/home/kpintaric/lumen-irmas/data/raw/IRMAS_Training_Data'
-    # generate_metadata(data_dir)
-    metadata_path = '/home/kpintaric/lumen-irmas/data/metadata_train.csv'
-    # preprocess = IRMASPreprocessor.from_metadata()
+    data_dir = "/home/kpintaric/lumen-irmas/data/raw/IRMAS_Training_Data"
+    metadata_path = "/home/kpintaric/lumen-irmas/data/metadata_train.csv"
     preprocess = IRMASPreprocessor(metadata=metadata_path, data_dir=data_dir)
-    preprocess.preprocess_and_mix(
-        save_dir="data", sync="pitch", ordered=False, num_track_to_mix=3)
+    preprocess.preprocess_and_mix(save_dir="data", sync="pitch", ordered=False, num_track_to_mix=3)
     a = 1

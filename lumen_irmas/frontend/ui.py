@@ -1,6 +1,3 @@
-import io
-import sys
-sys.path.append("../modeling")
 import streamlit as st
 from lumen_irmas.frontend.ui_backend import predict
 import json

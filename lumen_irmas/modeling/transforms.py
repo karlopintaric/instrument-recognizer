@@ -1,13 +1,14 @@
-import torch
-import torchaudio
 import os
-import numpy as np
-from functools import partial
-from transformers import ASTFeatureExtractor
-import torch.nn.functional as F
-from torchvision.transforms import Compose
-from torchaudio.transforms import FrequencyMasking, TimeMasking
 from abc import ABC, abstractmethod
+from functools import partial
+
+import numpy as np
+import torch
+import torch.nn.functional as F
+import torchaudio
+from torchaudio.transforms import FrequencyMasking, TimeMasking
+from torchvision.transforms import Compose
+from transformers import ASTFeatureExtractor
 
 
 class Transform(ABC):
@@ -46,7 +47,7 @@ class Preprocess(ABC):
 class OneHotEncode(Transform):
     """Transform labels to one-hot encoded tensor.
 
-    This class is a transform that takes a list of labels and returns a one-hot encoded tensor. 
+    This class is a transform that takes a list of labels and returns a one-hot encoded tensor.
     The labels are converted to a tensor with one-hot encoding using the specified classes.
 
     :param c: A list of classes to be used for one-hot encoding.
@@ -88,7 +89,6 @@ class OneHotEncode(Transform):
 
 
 class ParentMultilabel(Transform):
-
     def __init__(self, sep=" "):
         self.sep = sep
 
@@ -100,7 +100,7 @@ class ParentMultilabel(Transform):
 class LabelsFromTxt(Transform):
     """Extract multilabel parent directory from file path.
 
-    This class is a transform that extracts a multilabel parent directory from a file path. 
+    This class is a transform that extracts a multilabel parent directory from a file path.
     The directory names are split by a specified separator.
 
     :param sep: The separator used to split the directory names. Defaults to " ".
@@ -141,8 +141,9 @@ class LabelsFromTxt(Transform):
 class PreprocessPipeline(Preprocess):
     """A preprocessing pipeline for audio data.
 
-    This class is a preprocessing pipeline for audio data. 
-    The pipeline includes resampling to a target sampling rate, mixing down stereo to mono, and loading audio from a file.
+    This class is a preprocessing pipeline for audio data.
+    The pipeline includes resampling to a target sampling rate, mixing down stereo to mono,
+    and loading audio from a file.
 
     :param target_sr: The target sampling rate to resample to.
     :type target_sr: int
@@ -209,21 +210,18 @@ class PreprocessPipeline(Preprocess):
         """
 
         if input_sr != self.target_sr:
-            resampler = torchaudio.transforms.Resample(
-                input_sr, self.target_sr)
+            resampler = torchaudio.transforms.Resample(input_sr, self.target_sr)
             signal = resampler(signal)
         return signal
 
 
 class SpecToImage(Transform):
-
     def __init__(self, mean=None, std=None, eps=1e-6):
         self.mean = mean
         self.std = std
         self.eps = eps
 
     def __call__(self, spec):
-
         spec = torch.stack([spec, spec, spec], dim=-1)
 
         mean = torch.mean(spec) if self.mean is None else self.mean
@@ -237,9 +235,7 @@ class SpecToImage(Transform):
 
 
 class MinMaxScale(Transform):
-
     def __call__(self, spec):
-
         spec_min, spec_max = torch.min(spec), torch.max(spec)
 
         return (spec - spec_min) / (spec_max - spec_min)
@@ -257,7 +253,7 @@ class Normalize(Transform):
 class FeatureExtractor(Transform):
     """Extract features from audio signal using an AST feature extractor.
 
-    This class is a transform that extracts features from an audio signal using an AST feature extractor. 
+    This class is a transform that extracts features from an audio signal using an AST feature extractor.
     The features are returned as a PyTorch tensor.
 
     :param sr: The sampling rate of the audio signal.
@@ -278,8 +274,7 @@ class FeatureExtractor(Transform):
 
         """
 
-        self.transform = partial(
-            ASTFeatureExtractor(), sampling_rate=sr, return_tensors="pt")
+        self.transform = partial(ASTFeatureExtractor(), sampling_rate=sr, return_tensors="pt")
 
     def __call__(self, signal):
         """
@@ -310,53 +305,45 @@ class Preemphasis(Transform):
 
 
 class Spectrogram(Transform):
-
     def __init__(self, sample_rate, n_mels, hop_length, n_fft):
         self.transform = torchaudio.transforms.MelSpectrogram(
-            sample_rate=sample_rate,
-            n_mels=n_mels,
-            hop_length=hop_length,
-            n_fft=n_fft,
-            f_min=20,
-            center=False)
+            sample_rate=sample_rate, n_mels=n_mels, hop_length=hop_length, n_fft=n_fft, f_min=20, center=False
+        )
 
     def __call__(self, signal):
         return self.transform(signal)
 
 
 class LogTransform(Transform):
-
     def __call__(self, signal):
-        return torch.log(signal+1e-8)
+        return torch.log(signal + 1e-8)
 
 
 class PadCutToLength(Transform):
-
     def __init__(self, max_length):
         self.max_length = max_length
 
     def __call__(self, spec):
-
         seq_len = spec.shape[-1]
 
         if seq_len > self.max_length:
-            return spec[..., :self.max_length]
+            return spec[..., : self.max_length]
         if seq_len < self.max_length:
             diff = self.max_length - seq_len
             return F.pad(spec, (0, diff), mode="constant", value=0)
 
 
 class CustomFeatureExtractor(Transform):
-
     def __init__(self, sample_rate, n_mels, hop_length, n_fft, max_length, mean, std):
-        self.extract = Compose([
-            Preemphasis(),
-            Spectrogram(sample_rate=sample_rate, n_mels=n_mels,
-                        hop_length=hop_length, n_fft=n_fft),
-            LogTransform(),
-            PadCutToLength(max_length=max_length),
-            Normalize(mean=mean, std=std)
-        ])
+        self.extract = Compose(
+            [
+                Preemphasis(),
+                Spectrogram(sample_rate=sample_rate, n_mels=n_mels, hop_length=hop_length, n_fft=n_fft),
+                LogTransform(),
+                PadCutToLength(max_length=max_length),
+                Normalize(mean=mean, std=std),
+            ]
+        )
 
     def __call__(self, x):
         return self.extract(x)

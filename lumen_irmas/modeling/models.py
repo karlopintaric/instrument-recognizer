@@ -1,8 +1,9 @@
+from warnings import warn
+
 import torch
 import torch.nn as nn
-from transformers import ASTModel, ASTConfig
-from warnings import warn
 import torch.nn.functional as F
+from transformers import ASTConfig, ASTModel
 
 
 class StudentAST(nn.Module):
@@ -22,11 +23,9 @@ class StudentAST(nn.Module):
     def __init__(self, n_classes: int, hidden_size: int = 384, num_heads: int = 6, dropout: float = 0.25):
         super().__init__()
 
-        config = ASTConfig(hidden_size=hidden_size,
-                           num_attention_heads=num_heads, intermediate_size=hidden_size*4)
+        config = ASTConfig(hidden_size=hidden_size, num_attention_heads=num_heads, intermediate_size=hidden_size * 4)
         self.base_model = ASTModel(config=config)
-        self.classifier = StudentClassificationHead(
-            hidden_size, n_classes, dropout)
+        self.classifier = StudentClassificationHead(hidden_size, n_classes, dropout)
 
     def forward(self, x: torch.Tensor):
         """
@@ -86,7 +85,7 @@ class StudentClassificationHead(nn.Module):
 
 class ASTPretrained(nn.Module):
     """
-    This class implements a PyTorch module for a pre-trained Audio Set Transformer (AST) model 
+    This class implements a PyTorch module for a pre-trained Audio Set Transformer (AST) model
     fine-tuned on MIT's dataset for audio event classification.
 
     :param n_classes: The number of classes for audio event classification.
@@ -101,17 +100,16 @@ class ASTPretrained(nn.Module):
 
     def __init__(self, n_classes: int, dropout: float = 0.5):
         super().__init__()
-        self.base_model = ASTModel.from_pretrained(
-            "MIT/ast-finetuned-audioset-10-10-0.4593")
+        self.base_model = ASTModel.from_pretrained("MIT/ast-finetuned-audioset-10-10-0.4593")
         fc_in = self.base_model.config.hidden_size
 
         self.classifier = nn.Sequential(
-            nn.LayerNorm((fc_in,), eps=1e-12),
-            nn.Dropout(p=dropout),
-            nn.Linear(fc_in, n_classes))
+            nn.LayerNorm((fc_in,), eps=1e-12), nn.Dropout(p=dropout), nn.Linear(fc_in, n_classes)
+        )
 
     def forward(self, x):
-        """Passes the input tensor through the pre-trained Audio Set Transformer (AST) model followed by a fully connected layer.
+        """Passes the input tensor through the pre-trained Audio Set Transformer (AST) model
+        followed by a fully connected layer.
 
         :param x: The input tensor of shape [batch_size, seq_len, num_features].
         :type x: torch.Tensor
@@ -125,7 +123,7 @@ class ASTPretrained(nn.Module):
         return x
 
 
-def LLRD(config, model: ASTModel):
+def layerwise_lr_decay(config, model: ASTModel):
     """
     LLRD (Layer-wise Learning Rate Decay) function computes the learning rate for each layer in a deep neural network
     using a specific decay rate and a base learning rate for the optimizer.
@@ -137,13 +135,14 @@ def LLRD(config, model: ASTModel):
 
     :raises Warning: If the configuration object does not contain the LLRD parameters.
 
-    :return: A dictionary containing the optimizer parameters (parameters, weight decay, and learning rate) for each layer.
+    :return: A dictionary containing the optimizer parameters (parameters, weight decay, and learning rate)
+        for each layer.
     :rtype: dict
     """
 
     try:
         config = config.LLRD
-    except:
+    except Exception:
         warn("No LLRD found in config. Learner will use single lr for whole model.")
         return None
 
@@ -151,8 +150,7 @@ def LLRD(config, model: ASTModel):
     weight_decay = config["weight_decay"]
     no_decay = ["bias", "layernorm"]
     body = ["embeddings", "encoder.layer"]
-    head_params = [(n, p) for n, p in model.named_parameters()
-                   if not any(body_param in n for body_param in body)]
+    head_params = [(n, p) for n, p in model.named_parameters() if not any(body_param in n for body_param in body)]
     optimizer_grouped_parameters = [
         {
             "params": [p for n, p in head_params if not any(nd in n for nd in no_decay)],
@@ -167,8 +165,9 @@ def LLRD(config, model: ASTModel):
     ]
 
     # initialize lrs for every layer
-    layers = [getattr(model.module, config["body"]).embeddings] + \
-        list(getattr(model.module, config["body"]).encoder.layer)
+    layers = [getattr(model.module, config["body"]).embeddings] + list(
+        getattr(model.module, config["body"]).encoder.layer
+    )
     layers.reverse()
     for layer in layers:
         lr *= config["lr_decay_rate"]
@@ -190,8 +189,9 @@ def LLRD(config, model: ASTModel):
 
 def freeze(model: nn.Module):
     """
-    Freeze function sets the requires_grad attribute to False for all parameters in the given PyTorch neural network model.
-    This is used to freeze the weights of the model during training or inference.
+    Freeze function sets the requires_grad attribute to False for all parameters
+    in the given PyTorch neural network model. This is used to freeze the weights of
+    the model during training or inference.
 
     :param model: A PyTorch neural network model.
     :type model: nn.Module
@@ -226,9 +226,9 @@ def unfreeze(model: nn.Module):
 
 def interpolate_params(student: nn.Module, teacher: nn.Module):
     """
-    Interpolate parameters between two models.
-    This function scales the parameters of the teacher model to match the shape of the corresponding parameters 
-    in the student model using bilinear interpolation. If the shapes of the parameters in the two models are already the same, 
+    Interpolate parameters between two models. This function scales the parameters of the
+    teacher model to match the shape of the corresponding parameters in the student model
+    using bilinear interpolation. If the shapes of the parameters in the two models are already the same,
     the parameters are unchanged.
 
     :param student: The student model.
@@ -246,7 +246,6 @@ def interpolate_params(student: nn.Module, teacher: nn.Module):
         # Scale the parameter using interpolate if its shape is different from that of the second model
         target_param = student.base_model.state_dict()[name]
         if param.shape != target_param.shape:
-
             squeeze_count = 0
             permuted = False
             while param.ndim < 4:
@@ -261,8 +260,7 @@ def interpolate_params(student: nn.Module, teacher: nn.Module):
             if target_param.ndim < 2:
                 target_param = target_param.unsqueeze(0)
 
-            scaled_param = F.interpolate(param, size=(
-                target_param.shape[-2:]), mode="bilinear")
+            scaled_param = F.interpolate(param, size=(target_param.shape[-2:]), mode="bilinear")
 
             while squeeze_count > 0:
                 scaled_param = scaled_param.squeeze(0)

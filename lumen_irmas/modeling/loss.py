@@ -1,20 +1,23 @@
+from functools import partial
+from typing import Union
+
+import numpy as np
 import torch
 import torch.nn as nn
 from torchvision.ops import sigmoid_focal_loss
-from functools import partial
-from typing import Union
-import numpy as np
 
 
 class FocalLoss(nn.Module):
     """
     Focal Loss implementation.
 
-    This class defines the Focal Loss, which is a variant of the Binary Cross Entropy (BCE) loss that is 
-    designed to address the problem of class imbalance in binary classification tasks. 
-    The Focal Loss introduces two hyperparameters, alpha and gamma, to control the balance between easy and hard examples during training.
+    This class defines the Focal Loss, which is a variant of the Binary Cross Entropy (BCE) loss that is
+    designed to address the problem of class imbalance in binary classification tasks.
+    The Focal Loss introduces two hyperparameters, alpha and gamma, to control the balance between easy
+    and hard examples during training.
 
-    :param alpha: The balancing parameter between positive and negative examples. A float value between 0 and 1. If set to -1, no balancing is applied.Default is 0.25.
+    :param alpha: The balancing parameter between positive and negative examples. A float value between 0 and 1.
+        If set to -1, no balancing is applied. Default is 0.25.
     :type alpha: float
     :param gamma: The focusing parameter to control the emphasis on hard examples. A positive integer. Default is 2.
     :type gamma: int
@@ -22,8 +25,7 @@ class FocalLoss(nn.Module):
 
     def __init__(self, alpha: float = 0.25, gamma: int = 2):
         super().__init__()
-        self.loss_fn = partial(
-            sigmoid_focal_loss, alpha=alpha, gamma=gamma, reduction="mean")
+        self.loss_fn = partial(sigmoid_focal_loss, alpha=alpha, gamma=gamma, reduction="mean")
 
     def forward(self, inputs, targets):
         """
@@ -44,17 +46,18 @@ class FocalLoss(nn.Module):
 class HardDistillationLoss(nn.Module):
     """Hard Distillation Loss implementation.
 
-    This class defines the Hard Distillation Loss, which is used for model distillation, 
-    a technique used to transfer knowledge from a large, complex teacher model to a smaller, 
-    simpler student model. The Hard Distillation Loss computes the loss by comparing the outputs 
-    of the student model and the teacher model using a provided loss function. It also introduces a 
+    This class defines the Hard Distillation Loss, which is used for model distillation,
+    a technique used to transfer knowledge from a large, complex teacher model to a smaller,
+    simpler student model. The Hard Distillation Loss computes the loss by comparing the outputs
+    of the student model and the teacher model using a provided loss function. It also introduces a
     threshold parameter to convert the teacher model outputs to binary labels for the distillation process.
 
     :param teacher: The teacher model used for distillation.
     :type teacher: torch.nn.Module
     :param loss_fn: The loss function used for computing the distillation loss.
     :type loss_fn: torch.nn.Module
-    :param threshold: The threshold value used to convert teacher model outputs to binary labels. Can be a list or numpy array of threshold values.
+    :param threshold: The threshold value used to convert teacher model outputs to binary labels.
+        Can be a list or numpy array of threshold values.
     :type threshold: Union[list, np.array]
     :param device: The device to be used for computation. Default is "cuda".
     :type device: str
@@ -72,7 +75,8 @@ class HardDistillationLoss(nn.Module):
 
         :param inputs: The input data fed to the student model.
         :type inputs: torch.Tensor
-        :param student_outputs: The output predictions from the student model, which consists of both classification and distillation outputs.
+        :param student_outputs: The output predictions from the student model, which consists of
+            both classification and distillation outputs.
         :type student_outputs: tuple
         :param targets: The ground truth targets.
         :type targets: torch.Tensor
