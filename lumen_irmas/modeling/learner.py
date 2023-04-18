@@ -6,19 +6,30 @@ import wandb
 import lumen_irmas.modeling.metrics as metrics_module
 import lumen_irmas.modeling.loss as loss_module
 from lumen_irmas.modeling.utils import init_obj
-from lumen_irmas.modeling.models import freeze, unfreeze, LLRD, Ensemble
+from lumen_irmas.modeling.models import LLRD
 from abc import ABC, abstractmethod
-from typing import Type, Optional
 from torch.utils.data import DataLoader
 import torch.nn as nn
 from lumen_irmas.modeling.loss import HardDistillationLoss
 
 
 class BaseLearner(ABC):
+    """
+    Abstract base class for a learner.
+
+    :param train_dl: DataLoader for training data
+    :type train_dl: Type[DataLoader]
+    :param valid_dl: DataLoader for validation data
+    :type valid_dl: Type[DataLoader]
+    :param model: Model to be trained
+    :type model: Type[nn.Module]
+    :param config: Configuration object
+    :type config: Any
+    """
 
     def __init__(self,
-                 train_dl: Type[DataLoader], valid_dl: Type[DataLoader],
-                 model: Type[nn.Module], config):
+                 train_dl: DataLoader, valid_dl: DataLoader,
+                 model: nn.Module, config):
         self.train_dl = train_dl
         self.valid_dl = valid_dl
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -27,20 +38,36 @@ class BaseLearner(ABC):
 
     @abstractmethod
     def fit(self,):
+        """Abstract method for fitting the model."""
+
         pass
 
     @abstractmethod
     def _train_epoch(self,):
+        """Abstract method for training the model for one epoch."""
         pass
 
     @abstractmethod
     def _test_epoch(self,):
+        """Abstract method for testing the model for one epoch."""
         pass
 
 
 class Learner(BaseLearner):
 
-    def __init__(self, train_dl, valid_dl, model, config):
+    def __init__(self, train_dl: DataLoader, valid_dl: DataLoader, model: nn.Module, config):
+        """A class that inherits from the BaseLearner class and represents a learner object.
+
+        :param train_dl: DataLoader for training data
+        :type train_dl: DataLoader
+        :param valid_dl: DataLoader for validation data
+        :type valid_dl: DataLoader
+        :param model: Model to be trained
+        :type model: nn.Module
+        :param config: Configuration object
+        :type config: Any
+        """
+
         super().__init__(train_dl, valid_dl, model, config)
 
         self.model = torch.nn.DataParallel(module=self.model,
@@ -62,6 +89,12 @@ class Learner(BaseLearner):
         self.test_step = 0
 
     def fit(self, model_name: str = "model"):
+        """
+        Method to train the model.
+
+        :param model_name: Name of the model to be saved, defaults to "model"
+        :type model_name: str, optional
+        """
 
         loop = tqdm(range(self.config.EPOCHS), leave=False)
 
@@ -84,6 +117,14 @@ class Learner(BaseLearner):
         torch.save(self.model.module.state_dict(), f"{model_name}.pth")
 
     def _train_epoch(self, distill: bool = False):
+        """
+        Method to perform one epoch of training.
+
+        :param distill: Flag to indicate if knowledge distillation is used, defaults to False
+        :type distill: bool, optional
+        :return: Average training loss for the epoch
+        :rtype: float
+        """
 
         if distill:
             print("Distilling knowledge...", flush=True)
@@ -138,6 +179,12 @@ class Learner(BaseLearner):
         return train_loss
 
     def _test_epoch(self):
+        """
+        Method to perform one epoch of validation/testing.
+
+        :return: Average validation/test loss for the epoch
+        :rtype: float
+        """
 
         loop = tqdm(self.valid_dl, leave=False)
         self.model.eval()
@@ -189,6 +236,22 @@ class Learner(BaseLearner):
 
 
 class KDLearner(Learner):
+    """
+    Knowledge Distillation Learner class for training a student model with knowledge distillation.
+
+    :param train_dl: Train data loader
+    :type train_dl: DataLoader
+    :param valid_dl: Validation data loader
+    :type valid_dl: DataLoader
+    :param student_model: Student model to be trained
+    :type student_model: nn.Module
+    :param teacher: Teacher model for knowledge distillation
+    :type teacher: nn.Module
+    :param thresholds: Thresholds for HardDistillationLoss
+    :type thresholds: List[float]
+    :param config: Configuration object for training
+    :type config: Config
+    """
 
     def __init__(self, train_dl, valid_dl, student_model, teacher, thresholds, config):
         super().__init__(train_dl, valid_dl, student_model, config)
@@ -198,10 +261,29 @@ class KDLearner(Learner):
             self.teacher, self.loss_fn, thresholds, self.device)
 
     def _train_epoch(self):
+        """
+        Method to perform one epoch of training with knowledge distillation.
+
+        :return: Average training loss for the epoch
+        :rtype: float
+        """
+
         return super()._train_epoch(distill=True)
 
 
 class MetricTracker:
+    """
+    Metric Tracker class for tracking evaluation metrics during model validation.
+    his class is used to track and display evaluation metrics during model validation. 
+    It keeps track of the results of the provided metric functions for each validation batch, 
+    and logs them to Weights & Biases using wandb.log(). The display() method can be used 
+    to print the tracked metric results, if verbose is set to True during initialization.
+
+    :param metrics: List of metric functions to track
+    :type metrics: List[Callable]
+    :param verbose: Flag to indicate whether to print the results or not, defaults to True
+    :type verbose: bool, optional
+    """
 
     def __init__(self, metrics, verbose: bool = True):
         self.metrics_fn = [getattr(metrics_module, metric)
@@ -210,11 +292,21 @@ class MetricTracker:
         self.result = None
 
     def update(self, preds, targets):
+        """
+        Update the metric tracker with the latest predictions and targets.
+
+        :param preds: Model predictions
+        :type preds: torch.Tensor
+        :param targets: Ground truth targets
+        :type targets: torch.Tensor
+        """
 
         self.result = {metric.__name__: metric(
             preds, targets) for metric in self.metrics_fn}
         wandb.log(self.result)
 
     def display(self):
+        """Display the tracked metric results."""
+
         for k, v in self.result.items():
             print(f'{k}: {v:.2f}')

@@ -1,10 +1,8 @@
-import requests
 import torch
 from torchvision import transforms
-import streamlit as st
-from irmas_ast import FeatureExtractor
-from irmas_ast import CLASSES
-from irmas_ast import ASTPretrained
+from lumen_irmas import FeatureExtractor
+from lumen_irmas import CLASSES
+from lumen_irmas import ASTPretrained
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(

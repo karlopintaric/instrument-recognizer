@@ -1,6 +1,5 @@
 from fastapi import FastAPI, UploadFile, File
-from ModelService import ModelServiceAST
-import torchaudio
+from lumen_irmas.api.ModelService import ModelServiceAST
 
 app = FastAPI()
 model_service = ModelServiceAST()

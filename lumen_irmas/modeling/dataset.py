@@ -76,7 +76,7 @@ class IRMASDataset(Dataset):
         :return: The length of the dataset
         :rtype: int
         """
-        
+
         return len(self.files)
 
     def __getitem__(self, index):
@@ -87,7 +87,7 @@ class IRMASDataset(Dataset):
         :return: A tuple of the preprocessed audio signal and the corresponding one-hot encoded label
         :rtype: Tuple[Tensor, Tensor]
         """
-        
+
         sample_path = self.files[index]
         signal = self.preprocess(sample_path)
 
@@ -147,7 +147,7 @@ def get_loader(config: dict, subset: str):
     :return: A PyTorch DataLoader for the specified subset of the dataset.
     :rtype: torch.utils.data.DataLoader
     """
-    
+
     dst = IRMASDataset(
         config.train_dir if subset == "train" else config.valid_dir,
         preprocess=init_obj(

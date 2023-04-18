@@ -1,6 +1,5 @@
 import torch
 import torchaudio
-import torch.nn as nn
 import os
 import numpy as np
 from functools import partial
@@ -112,7 +111,7 @@ class LabelsFromTxt(Transform):
     :rtype: list
 
     """
-    
+
     def __init__(self, delimiter=None):
         """
         Initialize ParentMultilabel object.
@@ -133,7 +132,7 @@ class LabelsFromTxt(Transform):
         :rtype: list
 
         """
-        
+
         path = path.replace("wav", "txt")
         label = np.loadtxt(path, dtype=str, ndmin=1, delimiter=self.delimiter)
         return label
@@ -153,7 +152,7 @@ class PreprocessPipeline(Preprocess):
     :rtype: numpy.ndarray
 
     """
-    
+
     def __init__(self, target_sr):
         """
         Initialize PreprocessPipeline object.
@@ -162,7 +161,7 @@ class PreprocessPipeline(Preprocess):
         :type target_sr: int
 
         """
-        
+
         self.target_sr = target_sr
 
     def __call__(self, path):
@@ -175,7 +174,7 @@ class PreprocessPipeline(Preprocess):
         :rtype: numpy.ndarray
 
         """
-        
+
         signal, sr = torchaudio.load(path)
         signal = self._resample(signal, sr)
         signal = self._mix_down(signal)
@@ -191,7 +190,7 @@ class PreprocessPipeline(Preprocess):
         :rtype: torch.Tensor
 
         """
-        
+
         if signal.shape[0] > 1:
             signal = torch.mean(signal, dim=0, keepdim=True)
         return signal
@@ -208,7 +207,7 @@ class PreprocessPipeline(Preprocess):
         :rtype: torch.Tensor
 
         """
-        
+
         if input_sr != self.target_sr:
             resampler = torchaudio.transforms.Resample(
                 input_sr, self.target_sr)
@@ -278,7 +277,7 @@ class FeatureExtractor(Transform):
         :type sr: int
 
         """
-        
+
         self.transform = partial(
             ASTFeatureExtractor(), sampling_rate=sr, return_tensors="pt")
 
@@ -292,7 +291,7 @@ class FeatureExtractor(Transform):
         :rtype: torch.Tensor
 
         """
-        
+
         return self.transform(signal.squeeze()).input_values.mT
 
 
@@ -376,7 +375,7 @@ class RepeatAudio(Transform):
     :rtype: numpy.ndarray
 
     """
-    
+
     def __init__(self, max_repeats: int = 2):
         """
         Initialize RepeatAudio object.
@@ -385,7 +384,7 @@ class RepeatAudio(Transform):
         :type max_repeats: int
 
         """
-        
+
         self.max_repeats = max_repeats
 
     def __call__(self, signal):
@@ -398,7 +397,7 @@ class RepeatAudio(Transform):
         :rtype: numpy.ndarray
 
         """
-        
+
         num_repeats = torch.randint(1, self.max_repeats, (1,)).item()
         return np.tile(signal, reps=num_repeats)
 
@@ -416,7 +415,7 @@ class MaskFrequency(Transform):
     :rtype: numpy.ndarray
 
     """
-    
+
     def __init__(self, max_mask_length: int = 0):
         """
         Initialize MaskFrequency object.
@@ -425,7 +424,7 @@ class MaskFrequency(Transform):
         :type max_mask_length: int
 
         """
-        
+
         self.aug = FrequencyMasking(max_mask_length)
 
     def __call__(self, spec):
@@ -438,7 +437,7 @@ class MaskFrequency(Transform):
         :rtype: numpy.ndarray
 
         """
-        
+
         return self.aug(spec)
 
 
@@ -464,7 +463,7 @@ class MaskTime(Transform):
         :type max_mask_length: int
 
         """
-        
+
         self.aug = TimeMasking(max_mask_length)
 
     def __call__(self, spec):
@@ -477,5 +476,5 @@ class MaskTime(Transform):
         :rtype: numpy.ndarray
 
         """
-        
+
         return self.aug(spec)

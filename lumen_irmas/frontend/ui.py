@@ -2,7 +2,7 @@ import io
 import sys
 sys.path.append("../modeling")
 import streamlit as st
-from ui_backend import predict
+from lumen_irmas.frontend.ui_backend import predict
 import json
 
 def load_audio():

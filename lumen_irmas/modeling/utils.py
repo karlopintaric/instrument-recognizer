@@ -2,7 +2,6 @@ from glob import glob
 import yaml
 import torch.optim as optim
 from types import SimpleNamespace
-from torchvision.transforms import Compose
 from typing import Union
 import librosa
 import numpy as np

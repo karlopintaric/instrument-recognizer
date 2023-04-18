@@ -34,7 +34,7 @@ def generate_metadata(data_dir: Union[str, Path],
     :return: DataFrame containing the metadata information.
     :rtype: pandas.DataFrame
     """
-    
+
     data_dir = Path(data_dir) if isinstance(data_dir, str) else data_dir
 
     if subset == "train":
@@ -81,7 +81,7 @@ def create_test_split(metadata_path: str, txt_save_path: str, random_state: Opti
     :return: None
     :rtype: None
     """
-    
+
     df = pd.read_csv(metadata_path)
     kf = StratifiedGroupKFold(n_splits=2, shuffle=True,
                               random_state=random_state)
@@ -111,7 +111,7 @@ class IRMASPreprocessor:
     :return: An instance of IRMASPreprocessor
     :rtype: IRMASPreprocessor
     """
-    
+
     def __init__(self, metadata: Union[pd.DataFrame, str] = None,
                  data_dir: Union[str, Path] = None,
                  sample_rate: int = 16000):
@@ -152,7 +152,7 @@ class IRMASPreprocessor:
         :return: None
         :rtype: None
         """
-        
+
         combs = itertools.combinations(
             self.instruments, r=num_track_to_mix)
 
@@ -182,7 +182,7 @@ class IRMASPreprocessor:
         :return: None
         :rtype: None
         """
-        
+
         save_dir = self._create_save_dir(insts, save_dir)
 
         insts_files_list = [self._get_filepaths(inst) for inst in insts]
@@ -209,7 +209,7 @@ class IRMASPreprocessor:
         :return: A numpy array of file paths corresponding to the instrument label.
         :rtype: numpy.ndarray
         """
-                
+
         metadata = self.metadata.loc[self.metadata.inst == inst]
 
         if metadata.empty:
@@ -236,7 +236,7 @@ class IRMASPreprocessor:
         :return: None
         :rtype: None
         """
-        
+
         for i in range(len(insts_files_list[0])):
             files_to_sync = [inst_files[i] for inst_files in insts_files_list]
             new_name = f"{'-'.join([file.stem for file in files_to_sync])}.wav"
@@ -257,7 +257,7 @@ class IRMASPreprocessor:
         :return: The synchronized and mixed audio signal.
         :rtype: numpy.ndarray
         """
-        
+
         cols = ["pitch", "bpm", "onset"]
         files_metadata_df = self.metadata.loc[self.metadata.path.isin(
             [str(file_path) for file_path in files_to_sync])].set_index("path")
@@ -268,7 +268,7 @@ class IRMASPreprocessor:
 
         if sync is not None:
             mean_features = files_metadata_df[cols].mean().to_dict()
-        
+
         metadata_dict = files_metadata_df.to_dict("index")
 
         for i, (file_to_sync_path, features) in enumerate(metadata_dict.items()):
@@ -318,7 +318,7 @@ class IRMASPreprocessor:
             :return: The path to the newly created directory.
             :rtype: str
             """
-            
+
             new_dir_name = '-'.join(insts)
             new_dir_path = os.path.join(save_dir, new_dir_name)
             os.makedirs(new_dir_path, exist_ok=True)
@@ -335,7 +335,7 @@ class IRMASPreprocessor:
         :return: A new instance of the class.
         :rtype: cls
         """
-        
+
         metadata = pd.read_csv(metadata_path)
         return cls(metadata, **kwargs)
 
