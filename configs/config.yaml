@@ -1,5 +1,14 @@
 
-EPOCHS: 3
+# Data location
+train_dir: ../data/processed/
+valid_dir: ..data/raw/
+
+# Fit parameters
+epochs: 3
+batch_size: 8
+num_accum: 4
+
+# Per layer learning rates and weight decay
 LLRD:
     base_lr: 2.0e-05
     lr_decay_rate: 0.85
@@ -8,41 +17,52 @@ LLRD:
     body: base_model
     head: classifier
 
-batch_size: 8
 dropout: 0.5
-num_gpus: 2
+
+# Loss function
 loss:
     FocalLoss:
       alpha: -1
       gamma: 2
+
+# Metrics
 metrics:
   - hamming_score
   - zero_one_score
   - mAP
   - mean_f1_score
-num_accum: 4
+
+# Optimizer
 optimizer:
     AdamW:
       weight_decay: 0
-preprocess:
-    PreprocessPipeline:
-      target_sr: 16000
-save_best_model: true
+
 scheduler:
     OneCycleLR:
       anneal_strategy: cos
       pct_start: 0.05
+
+# Data processing
+preprocess:
+    PreprocessPipeline:
+      target_sr: 16000
+
+transforms:
+    FeatureExtractor:
+      sr: 16000
+
 signal_augments:
     RepeatAudio:
       max_repeats: 6
+
 spec_augments:
     MaskFrequency:
       max_mask_length: 27
     MaskTime:
       max_mask_length: 165
-train_dir: /nfs/home/8548f215c44990b1/lumen-irmas/data/processed/no_sync_two
-transforms:
-    FeatureExtractor:
-      sr: 16000
-valid_dir: /nfs/home/8548f215c44990b1/lumen-irmas/data/raw/IRTestingData
+
+
+# Settings
+num_gpus: 2
 verbose: true
+save_last_checkpoint: true

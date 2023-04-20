@@ -8,11 +8,11 @@ import wandb
 from torch.utils.data import DataLoader
 from tqdm.autonotebook import tqdm
 
-import lumen_irmas.modeling.loss as loss_module
-import lumen_irmas.modeling.metrics as metrics_module
-from lumen_irmas.modeling.loss import HardDistillationLoss
-from lumen_irmas.modeling.models import layerwise_lr_decay
-from lumen_irmas.modeling.utils import init_obj
+import lumen_irmas.loss as loss_module
+import lumen_irmas.metrics as metrics_module
+from lumen_irmas.loss import HardDistillationLoss
+from lumen_irmas.models import layerwise_lr_decay
+from lumen_irmas.utils import init_obj
 
 
 class BaseLearner(ABC):

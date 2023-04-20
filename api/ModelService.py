@@ -1,12 +1,13 @@
 import torch
 from torchvision import transforms
 from lumen_irmas import FeatureExtractor, PreprocessPipeline
-from lumen_irmas import CLASSES
 from lumen_irmas import ASTPretrained
+
+CLASSES = ["tru", "sax", "vio", "gac", "org", "cla", "flu", "voi", "gel", "cel", "pia"]
 
 def load_model():
     model = ASTPretrained(n_classes=11)
-    # model.load...
+    model.load_state_dict(torch.load("models/bpmsync_2.pth", map_location=torch.device('cpu')))
     model.eval()
     return model
 

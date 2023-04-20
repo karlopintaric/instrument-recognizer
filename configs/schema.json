@@ -1,0 +1,53 @@
+{
+    "train_dir": {"type": "string", "required": true},
+    "valid_dir": {"type": "string", "required": true},
+    "epochs": {"type": "integer", "required": true},
+    "batch_size": {"type": "integer", "required": true},
+    "num_accum": {"type": "integer", "required": true},
+    "LLRD": {
+        "type": "dict",
+        "schema": {
+            "base_lr": {"type": "float", "required": true},
+            "lr_decay_rate": {"type": "float", "required": true},
+            "weight_decay": {"type": "float", "required": true},
+            "body": {"type": "string", "required": true},
+            "head": {"type": "string", "required": true}
+        }
+    },
+    "dropout": {"type": "float", "required": true},
+    "loss": {
+        "type": "dict",
+        "required": true
+    },
+    "metrics": {
+        "type": "list",
+        "schema": {"type": "string"}
+    },
+    "optimizer": {
+        "type": "dict",
+        "required": true
+    },
+    "scheduler": {
+        "type": "dict",
+        "required": true
+    },
+    "preprocess": {
+        "type": "dict",
+        "required": true
+    },
+    "transforms": {
+        "type": "dict",
+        "required": true
+    },
+    "signal_augments": {
+        "type": "dict",
+        "required": false
+    },
+    "spec_augments": {
+        "type": "dict",
+        "required": false
+    },
+    "num_gpus": {"type": "integer", "required": true},
+    "verbose": {"type": "boolean", "required": true},
+    "save_last_checkpoint": {"type": "boolean", "required": true}
+}

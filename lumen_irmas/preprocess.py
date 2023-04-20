@@ -11,8 +11,8 @@ from joblib import Parallel, delayed
 from sklearn.model_selection import StratifiedGroupKFold
 from tqdm.autonotebook import tqdm
 
-from lumen_irmas.modeling.transforms import LabelsFromTxt, ParentMultilabel
-from lumen_irmas.modeling.utils import get_file_info, sync_bpm, sync_onset, sync_pitch
+from lumen_irmas.transforms import LabelsFromTxt, ParentMultilabel
+from lumen_irmas.utils import get_file_info, sync_bpm, sync_onset, sync_pitch
 
 
 def generate_metadata(

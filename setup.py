@@ -1,22 +1,26 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name="lumen-irmas",
     version="0.1.0",
+    description="LUMEN Data Science nagradni zadatak",
+    author="Karlo Pintaric i Tatjana Cigula",
+    packages=find_packages(include=["lumen_irmas"]),
     install_requires=[
-        "librosa==0.10.0.post2",
         "numpy==1.23.5",
-        "pandas==2.0.0",
-        "scikit-learn==1.2.2",
-        "torch==2.0.0",
-        "torchaudio==2.0.1",
-        "torchvision==0.15.1",
-        "tqdm==4.65.0",
         "transformers==4.27.4",
-        "wandb==0.14.2"
-        ],
-    packages=["lumen_irmas"],
+    ],
     extras_require={
-        "all": ["matplotlib", "fastapi[all]", "streamlit"],
+        "backend": ["fastapi==0.95.1", "uvicorn==0.21.1", "python-multipart==0.0.6"],
+        "dev": [
+            "librosa==0.10.0.post2", 
+            "pandas==1.5.3", 
+            "scikit-learn==1.2.2", 
+            "tqdm==4.65.0", 
+            "wandb==0.14.2",
+            "torch==1.13.1",
+            "torchaudio==0.13.1",
+            "torchvision==0.14.1",
+            ]
     },
 )

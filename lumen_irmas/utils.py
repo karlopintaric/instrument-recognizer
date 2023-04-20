@@ -79,6 +79,11 @@ def init_objs(fn_dict, module):
     transforms = []
     for transform in fn_dict.keys():
         fn = getattr(module, transform)
+        if fn is None:
+            raise NotImplementedError(
+                "The attribute '{}' is not implemented in the module '{}'.".format(transform, module.__name__)
+            )
+
         fn_args = fn_dict[transform]
 
         if fn_args is None:
@@ -112,6 +117,11 @@ def init_obj(fn_dict, module, *args, **kwargs):
     name = list(fn_dict.keys())[0]
 
     fn = getattr(module, name)
+    if fn is None:
+        raise NotImplementedError(
+            "The attribute '{}' is not implemented in the module '{}'.".format(name, module.__name__)
+        )
+
     fn_args = fn_dict[name]
 
     if fn_args is not None:

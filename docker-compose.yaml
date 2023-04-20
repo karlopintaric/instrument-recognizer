@@ -1,0 +1,28 @@
+version: '3'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: DockerFile.backend
+    ports:
+      - "8000:8000"
+    networks:
+      - deploy_network
+    container_name: api
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: DockerFile.frontend
+    depends_on:
+      - api
+    ports:
+        - "8501:8501"
+    networks:
+      - deploy_network
+    container_name: streamlit
+
+networks:
+  deploy_network:
+    driver: bridge

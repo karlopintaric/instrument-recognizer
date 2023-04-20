@@ -140,3 +140,4 @@ scripts/wandb/
 weights/
 
 lumen_2023_workshop-main/
+api/models/bpmsync_2.pth
