@@ -11,7 +11,7 @@ from tqdm.autonotebook import tqdm
 import lumen_irmas.loss as loss_module
 import lumen_irmas.metrics as metrics_module
 from lumen_irmas.loss import HardDistillationLoss
-from lumen_irmas.models import layerwise_lr_decay
+from lumen_irmas.models import freeze, layerwise_lr_decay
 from lumen_irmas.utils import init_obj
 
 
@@ -90,7 +90,7 @@ class Learner(BaseLearner):
 
         self.verbose = self.config.verbose
         self.metrics = MetricTracker(self.config.metrics, self.verbose)
-        self.scaler = torch.cuda.amp.GradScaler()
+        self.scaler = torch.cuda.amp.GradScaler(enabled=False)
 
         self.train_step = 0
         self.test_step = 0
@@ -141,11 +141,11 @@ class Learner(BaseLearner):
             yb = yb.to(self.device)
 
             # forward
-            with torch.autocast(device_type=self.device, dtype=torch.float16):
+            with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=False):
                 predictions = self.model(xb)
 
                 if distill:
-                    loss = self.loss_fn(xb, predictions, yb)
+                    loss = self.KDloss_fn(xb, predictions, yb)
                 else:
                     loss = self.loss_fn(predictions, yb)
 
@@ -168,9 +168,10 @@ class Learner(BaseLearner):
             train_loss += loss.item()
 
             if distill:
-                if (idx + 1) % 5000 == 0:
+                if (idx + 1) % 2500 == 0:
                     val_loss = self._test_epoch()
                     wandb.log({"val_loss": val_loss})
+                    self.model.train()
 
         train_loss /= num_batches
 
@@ -252,8 +253,8 @@ class KDLearner(Learner):
     def __init__(self, train_dl, valid_dl, student_model, teacher, thresholds, config):
         super().__init__(train_dl, valid_dl, student_model, config)
 
-        self.teacher = teacher.to(self.device)
-        self.loss_fn = HardDistillationLoss(self.teacher, self.loss_fn, thresholds, self.device)
+        self.teacher = nn.DataParallel(freeze(teacher).to(self.device))
+        self.KDloss_fn = HardDistillationLoss(self.teacher, self.loss_fn, thresholds, self.device)
 
     def _train_epoch(self):
         """

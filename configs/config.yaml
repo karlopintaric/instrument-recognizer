@@ -27,10 +27,7 @@ loss:
 
 # Metrics
 metrics:
-  - hamming_score
-  - zero_one_score
-  - mAP
-  - mean_f1_score
+  - mean_average_precision
 
 # Optimizer
 optimizer:

@@ -98,13 +98,13 @@ class IRMASDataset(Dataset):
 
         label = target_transforms(sample_path)
 
-        if self.signal_augments is not None:
+        if self.signal_augments is not None and self.subset == "train":
             signal = self.signal_augments(signal)
 
         if self.transforms is not None:
             signal = self.transforms(signal)
 
-        if self.spec_augments is not None:
+        if self.spec_augments is not None and self.subset == "train":
             signal = self.spec_augments(signal)
 
         return signal, label.float()
@@ -156,7 +156,7 @@ def get_loader(config: dict, subset: str):
         batch_size=config.batch_size,
         shuffle=True,
         pin_memory=True if torch.cuda.is_available() else False,
-        num_workers=torch.get_num_threads(),
+        num_workers=torch.get_num_threads() - 1,
         collate_fn=collate_fn,
     )
 
