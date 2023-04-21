@@ -90,7 +90,7 @@ class Learner(BaseLearner):
 
         self.verbose = self.config.verbose
         self.metrics = MetricTracker(self.config.metrics, self.verbose)
-        self.scaler = torch.cuda.amp.GradScaler(enabled=False)
+        self.scaler = torch.cuda.amp.GradScaler()
 
         self.train_step = 0
         self.test_step = 0
@@ -141,7 +141,7 @@ class Learner(BaseLearner):
             yb = yb.to(self.device)
 
             # forward
-            with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=False):
+            with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=not distill):
                 predictions = self.model(xb)
 
                 if distill:
@@ -255,6 +255,7 @@ class KDLearner(Learner):
 
         self.teacher = nn.DataParallel(freeze(teacher).to(self.device))
         self.KDloss_fn = HardDistillationLoss(self.teacher, self.loss_fn, thresholds, self.device)
+        self.scaler = torch.cuda.amp.GradScaler(enabled=False)
 
     def _train_epoch(self):
         """
