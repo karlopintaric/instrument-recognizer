@@ -42,7 +42,7 @@ def main():
     if audio_file:
         valid = True
         
-    cut_audio = st.checkbox("Cut")    
+    cut_audio = st.checkbox("✂️ Cut duration", disabled= not valid)    
     if cut_audio:
         
         audio_data, sample_rate = sf.read(audio_file)

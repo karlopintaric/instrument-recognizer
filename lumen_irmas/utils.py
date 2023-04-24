@@ -159,7 +159,7 @@ def load_raw_file(path: Union[str, Path]):
     :return: A tuple containing the raw waveform and sample rate.
     :rtype: tuple
     """
-
+    return librosa.load(path, sr=None, mono=False)
 
 def get_onset(signal, sr):
     """
