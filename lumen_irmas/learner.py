@@ -84,7 +84,7 @@ class Learner(BaseLearner):
             optim.lr_scheduler,
             self.optimizer,
             max_lr=[param["lr"] for param in params],
-            epochs=self.config.EPOCHS,
+            epochs=self.config.epochs,
             steps_per_epoch=int(np.ceil(len(train_dl) / self.config.num_accum)),
         )
 
@@ -103,7 +103,7 @@ class Learner(BaseLearner):
         :type model_name: str, optional
         """
 
-        loop = tqdm(range(self.config.EPOCHS), leave=False)
+        loop = tqdm(range(self.config.epochs), leave=False)
 
         for epoch in loop:
             train_loss = self._train_epoch()

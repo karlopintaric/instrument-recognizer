@@ -17,6 +17,7 @@ def health_check():
 
 def predict(image_file):
     files = {"file": image_file}
+    #data = {"audio": audio_data, "model": model}
 
     response = requests.post(f"{backend}/predict", files=files, timeout=100)  # Replace with your API endpoint URL
 

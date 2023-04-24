@@ -154,7 +154,7 @@ def get_loader(config: dict, subset: str):
     return DataLoader(
         dst,
         batch_size=config.batch_size,
-        shuffle=True,
+        shuffle=True if subset == "train" else False,
         pin_memory=True if torch.cuda.is_available() else False,
         num_workers=torch.get_num_threads() - 1,
         collate_fn=collate_fn,

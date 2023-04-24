@@ -39,11 +39,11 @@ async def health_check():
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
     try:
-        file_extension = file.filename.split(".")[-1]
-        if not any(file_extension in allowed_format for allowed_format in ALLOWED_FILE_FORMATS):
-            raise RequestValidationError(
-                errors=[{"loc": ["file"], "msg": "File format not allowed", "type": "value_error"}]
-            )
+        #file_extension = file.filename.split(".")[-1]
+        #if not any(file_extension in allowed_format for allowed_format in ALLOWED_FILE_FORMATS):
+        #    raise RequestValidationError(
+        #        errors=[{"loc": ["file"], "msg": "File format not allowed", "type": "value_error"}]
+        #    )
 
         output = ml_models["BigModel"].get_prediction(file.file)
         return output

@@ -1,5 +1,7 @@
 import json
 import time
+import soundfile as sf
+import io
 
 import requests
 import streamlit as st
@@ -17,6 +19,7 @@ def load_audio():
 
 def main():
     st.title("Instrument recognizer")
+    model_selection = st.sidebar.selectbox("Select Model", ("Model 1", "Model 2"))
     audio_file = load_audio()
 
     # Send a health check request to the API in a loop until it is running
@@ -38,15 +41,48 @@ def main():
 
     if audio_file:
         valid = True
+        
+    cut_audio = st.checkbox("Cut")    
+    if cut_audio:
+        
+        audio_data, sample_rate = sf.read(audio_file)
+
+        # Display audio duration
+        duration = len(audio_data) / sample_rate
+        st.info(f"Audio Duration: {duration} seconds")
+
+        # Get start and end time for cutting
+        start_time = st.number_input("Start Time (seconds)", min_value=0.0, max_value=duration, step=0.1)
+        end_time = st.number_input("End Time (seconds)", min_value=start_time, value=duration, max_value=duration, step=0.1)
+
+        # Convert start and end time to sample indices
+        start_sample = int(start_time * sample_rate)
+        end_sample = int(end_time * sample_rate)
+
+        # Cut audio
+        cut_audio_data = audio_data[start_sample:end_sample]
+
+        # Create a temporary in-memory file for cut audio
+        cut_audio_file = io.BytesIO()
+        sf.write(cut_audio_file, cut_audio_data, sample_rate, format='wav')
+        cut_audio_file.seek(0)
+
+        # Display cut audio
+        st.audio(cut_audio_file, format='audio/wav')
+        audio_file = cut_audio_file.getvalue()
 
     result = st.button("Predict", disabled=not valid)
 
     if result:
         with st.spinner("Predicting instruments..."):
-            prediction = predict(audio_file)
-        st.write(json.dumps(prediction.json()))
-        st.write(prediction)
-
+            response = predict(audio_file)
+        
+        if response.status_code == 200:
+            st.success("Audio file uploaded successfully to API.")
+            st.write(json.dumps(response.json()))
+            st.write(response)
+        else:
+            st.error("Failed to upload audio file to API.")
 
 if __name__ == "__main__":
     main()
