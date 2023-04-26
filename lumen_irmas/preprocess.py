@@ -56,7 +56,7 @@ def generate_metadata(
 
     df["fname"] = df.path.map(lambda x: Path(x).stem)
     df["song_name"] = df.fname.str.extract(pattern)
-    df["inst"] = df.path.map(lambda x: "-".join(list(label_extractor(x))))
+    df["inst"] = df.path.map(lambda x: "-".join(sorted(list(label_extractor(x)))))
     df["label_count"] = df.inst.map(lambda x: len(x.split("-")))
 
     df.to_csv(f"{save_path}/metadata_{subset}.csv", index=False)
