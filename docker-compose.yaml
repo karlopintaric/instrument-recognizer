@@ -4,7 +4,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: DockerFile.backend
+      dockerfile: api/DockerFile.backend
     ports:
       - "8000:8000"
     networks:
@@ -14,7 +14,7 @@ services:
   streamlit:
     build:
       context: .
-      dockerfile: DockerFile.frontend
+      dockerfile: frontend/DockerFile.frontend
     depends_on:
       - api
     ports:

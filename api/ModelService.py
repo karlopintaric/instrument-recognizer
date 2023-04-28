@@ -1,7 +1,7 @@
 import torch
 from torchvision import transforms
 
-from lumen_irmas import ASTPretrained, FeatureExtractor, PreprocessPipeline
+from modeling import ASTPretrained, FeatureExtractor, PreprocessPipeline
 
 CLASSES = ["tru", "sax", "vio", "gac", "org", "cla", "flu", "voi", "gel", "cel", "pia"]
 THRESHOLDS = [

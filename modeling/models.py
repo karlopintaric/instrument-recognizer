@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from transformers import ASTConfig, ASTModel
+from torch.utils.data import DataLoader
 
 
 class StudentAST(nn.Module):

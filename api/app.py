@@ -4,6 +4,7 @@ from fastapi import FastAPI, File, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from ModelService import ModelServiceAST
+from typing import List
 
 ml_models = {}
 
@@ -47,6 +48,27 @@ async def predict(file: UploadFile = File(...)):
 
         output = ml_models["BigModel"].get_prediction(file.file)
         return output
+
+    except RequestValidationError as ex:
+        # Handle RequestValidationError
+        return JSONResponse(content={"error": "Bad Request", "detail": ex.errors()}, status_code=400)
+
+    except Exception as ex:
+        # Handle other exceptions
+        return JSONResponse(content={"error": "Internal Server Error", "detail": str(ex)}, status_code=500)
+
+async def predict_multiple(files: List[UploadFile] = File(...)):
+    try:
+        # Initialize dictionary to store predictions
+        predictions = {}
+
+        # Loop through each file and make a prediction
+        for file in files:
+            output = ml_models["BigModel"].get_prediction(file.file)
+            predictions[file.filename] = output
+
+        # Return predictions as JSON response
+        return predictions
 
     except RequestValidationError as ex:
         # Handle RequestValidationError

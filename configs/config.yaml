@@ -1,7 +1,7 @@
 
 # Data location
 train_dir: ../data/processed/
-valid_dir: ..data/raw/
+valid_dir: ../data/raw/
 
 # Fit parameters
 epochs: 3

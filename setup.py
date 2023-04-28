@@ -5,7 +5,7 @@ setup(
     version="0.1.0",
     description="LUMEN Data Science nagradni zadatak",
     author="Karlo Pintaric i Tatjana Cigula",
-    packages=find_packages(include=["lumen_irmas"]),
+    packages=find_packages(include=["modeling"]),
     install_requires=[
         "numpy==1.23.5",
         "transformers==4.27.4",

@@ -7,15 +7,15 @@ from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms import Compose
 
-import lumen_irmas.transforms as transform_module
-from lumen_irmas.transforms import (
+import modeling.transforms as transform_module
+from modeling.transforms import (
     LabelsFromTxt,
     OneHotEncode,
     ParentMultilabel,
     Preprocess,
     Transform,
 )
-from lumen_irmas.utils import CLASSES, get_wav_files, init_obj, init_transforms
+from modeling.utils import CLASSES, get_wav_files, init_obj, init_transforms
 
 
 class IRMASDataset(Dataset):

@@ -1,7 +1,11 @@
 import requests
+import os
+import streamlit as st
 
-# backend = "http://api:8000"
-backend = "http://0.0.0.0:8000"
+if os.environ.get("DOCKER"):
+    backend = "http://api:8000"
+else:
+    backend = "http://0.0.0.0:8000"
 
 
 def health_check():
@@ -14,9 +18,8 @@ def health_check():
     else:
         return False
 
-
-def predict(image_file):
-    files = {"file": image_file}
+def predict(file):
+    files = {"file": file.getvalue()}
     #data = {"audio": audio_data, "model": model}
 
     response = requests.post(f"{backend}/predict", files=files, timeout=100)  # Replace with your API endpoint URL

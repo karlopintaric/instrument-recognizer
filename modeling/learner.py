@@ -8,11 +8,11 @@ import wandb
 from torch.utils.data import DataLoader
 from tqdm.autonotebook import tqdm
 
-import lumen_irmas.loss as loss_module
-import lumen_irmas.metrics as metrics_module
-from lumen_irmas.loss import HardDistillationLoss
-from lumen_irmas.models import freeze, layerwise_lr_decay
-from lumen_irmas.utils import init_obj
+import modeling.loss as loss_module
+import modeling.metrics as metrics_module
+from modeling.loss import HardDistillationLoss
+from modeling.models import freeze, layerwise_lr_decay
+from modeling.utils import init_obj
 
 
 class BaseLearner(ABC):
@@ -212,26 +212,6 @@ class Learner(BaseLearner):
 
         return test_loss
 
-    def get_preds(self):
-        loop = tqdm(self.valid_dl, leave=False)
-        self.model.eval()
-
-        preds = []
-        targets = []
-
-        with torch.no_grad():
-            for xb, yb in loop:
-                xb, yb = xb.to(self.device), yb.to(self.device)
-                pred = self.model(xb)
-                pred = torch.sigmoid(pred)
-                preds.extend(pred.cpu().numpy())
-                targets.extend(yb.cpu().numpy())
-
-        preds, targets = np.array(preds), np.array(targets)
-
-        return preds, targets
-
-
 class KDLearner(Learner):
     """
     Knowledge Distillation Learner class for training a student model with knowledge distillation.
@@ -305,3 +285,23 @@ class MetricTracker:
 
         for k, v in self.result.items():
             print(f"{k}: {v:.2f}")
+
+def get_preds(data: Dataloader, model: nn.Module, device: str="cpu"):
+        
+        loop = tqdm(data, leave=False)
+        model.eval()
+
+        preds = []
+        targets = []
+
+        with torch.no_grad():
+            for xb, yb in loop:
+                xb, yb = xb.to(device), yb.to(device)
+                pred = model(xb)
+                pred = torch.sigmoid(pred)
+                preds.extend(pred.cpu().numpy())
+                targets.extend(yb.cpu().numpy())
+
+        preds, targets = np.array(preds), np.array(targets)
+
+        return preds, targets
