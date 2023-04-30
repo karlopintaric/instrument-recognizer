@@ -1,21 +1,18 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, Depends
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from ModelService import ModelServiceAST
-from typing import List
+from typing import List, Dict
+from pydantic import BaseModel, validator
 
 ml_models = {}
-
-# Define the allowed file formats and maximum file size (in bytes)
-ALLOWED_FILE_FORMATS = [".wav"]
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Load the ML model
-    ml_models["BigModel"] = ModelServiceAST()
+    ml_models["Accuracy"] = ModelServiceAST()
     yield
     # Clean up the ML models and release the resources
     ml_models.clear()
@@ -23,10 +20,62 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+# Define the allowed file formats and maximum file size (in bytes)
+ALLOWED_FILE_FORMATS = ["wav"]
+
+class InvalidFileTypeError(Exception):
+    
+    def __init__(self, value: str, message: str):
+        self.value = value
+        self.message = message
+        super().__init__(message)
+
+class InvalidModelError(Exception):
+    
+    def __init__(self, value: str, message: str):
+        self.value = value
+        self.message = message
+        super().__init__(message)
+
+class PredictionRequest(BaseModel):
+    file_name: str
+    file_type: str
+    model_name: str
+    
+    @validator("file_name")
+    @classmethod
+    def valid_type(cls, v):
+        if v.split(".")[-1].lower() not in ALLOWED_FILE_FORMATS:
+            raise InvalidFileTypeError(value=v, message="Only wav files are supported")
+        return v
+    
+    @validator("model_name")
+    @classmethod
+    def valid_model(cls, v):
+        if v not in ml_models.keys():
+            raise InvalidModelError(value=v, message="Selected model doesn't exist")
+        return v
+
+class PredictionResult(BaseModel):
+    prediction: Dict[str, Dict[str, int]]
+
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request, exc):
-    return JSONResponse(content={"error": "Bad Request", "detail": exc.errors()}, status_code=400)
+async def validation_exception_handler(request, ex):
+    return JSONResponse(content={"error": "Bad Request", "detail": ex.errors()}, status_code=400)
+
+@app.exception_handler(InvalidFileTypeError)
+async def filetype_exception_handler(request, ex):
+    return JSONResponse(content={"error": "Bad Request", "detail": ex.message}, status_code=400)
+
+@app.exception_handler(InvalidModelError)
+async def model_exception_handler(request, ex):
+    return JSONResponse(content={"error": "Bad Request", "detail": ex.message}, status_code=400)
+
+@app.exception_handler(Exception)
+async def handle_exceptions(request, ex):
+    # If an exception occurs during processing, return a JSON response with an error message
+    return JSONResponse(content={"error": "Internal Server Error", "detail": str(ex)}, status_code=500)
 
 
 @app.get("/health-check")
@@ -38,42 +87,9 @@ async def health_check():
 
 
 @app.post("/predict")
-async def predict(file: UploadFile = File(...)):
-    try:
-        #file_extension = file.filename.split(".")[-1]
-        #if not any(file_extension in allowed_format for allowed_format in ALLOWED_FILE_FORMATS):
-        #    raise RequestValidationError(
-        #        errors=[{"loc": ["file"], "msg": "File format not allowed", "type": "value_error"}]
-        #    )
-
-        output = ml_models["BigModel"].get_prediction(file.file)
-        return output
-
-    except RequestValidationError as ex:
-        # Handle RequestValidationError
-        return JSONResponse(content={"error": "Bad Request", "detail": ex.errors()}, status_code=400)
-
-    except Exception as ex:
-        # Handle other exceptions
-        return JSONResponse(content={"error": "Internal Server Error", "detail": str(ex)}, status_code=500)
-
-async def predict_multiple(files: List[UploadFile] = File(...)):
-    try:
-        # Initialize dictionary to store predictions
-        predictions = {}
-
-        # Loop through each file and make a prediction
-        for file in files:
-            output = ml_models["BigModel"].get_prediction(file.file)
-            predictions[file.filename] = output
-
-        # Return predictions as JSON response
-        return predictions
-
-    except RequestValidationError as ex:
-        # Handle RequestValidationError
-        return JSONResponse(content={"error": "Bad Request", "detail": ex.errors()}, status_code=400)
-
-    except Exception as ex:
-        # Handle other exceptions
-        return JSONResponse(content={"error": "Internal Server Error", "detail": str(ex)}, status_code=500)
+def predict(request: PredictionRequest = Depends(), file: UploadFile = File(...)) -> PredictionResult:
+    
+    output = ml_models[request.model_name].get_prediction(file.file)
+    prediction_result = PredictionResult(prediction={request.file_name:output})
+    
+    return prediction_result

@@ -2,10 +2,11 @@ import json
 import time
 import soundfile as sf
 import io
+from json import JSONDecodeError
 
 import requests
 import streamlit as st
-from ui_backend import health_check, predict
+from ui_backend import health_check, predict, display_predictions, predict_multiple
 
 
 def load_audio():
@@ -15,42 +16,32 @@ def load_audio():
         return audio_file
     else:
         return None
-
-@st.cache_data(show_spinner=False)
-def predict_multiple(audio_file):
-    predictions = {}
-    progress_text = "Getting predictions for all files. Please wait."
-    progress_bar = st.empty()
-    progress_bar.progress(0, text=progress_text)
-    num_files = len(audio_file)
-    for i,file in enumerate(audio_file):
-        name = file.name
-        response = predict(file)
-        if response.status_code == 200:
-            predictions[name] = response.json()
-            #my_bar.progress((i + 1)/num_files, text=progress_text)
-            progress_bar.progress((i + 1) / num_files, text=progress_text)
-        else:
-            predictions[name] = "Error making prediction."
-    progress_bar.empty()
-    return predictions
     
 
 def main():
-    st.title("Instrument recognizer")
-    model_selection = st.sidebar.selectbox("Select Model", ("Model 1", "Model 2"))
+    st.set_page_config(page_title="Music Instrument Recognition", page_icon="🎸", layout="wide", initial_sidebar_state="collapsed")
+    
+    st.markdown("<h1 style='text-align: center; color: #FFFFFF; font-size: 3rem;'>Instrument Recognition 🎶</h1>", unsafe_allow_html=True)
+    #st.title("Instrument recognizer 🎶")
+    selected_model = st.sidebar.selectbox("Select Model", ("Accuracy", "Speed"), help="Select a slower but more accurate model or a faster but less accurate model")
     audio_file = load_audio()
 
     # Send a health check request to the API in a loop until it is running
     api_running = False
     with st.spinner("Waiting for API..."):
+        trial_count = 0
+        max_tries = 6
         while not api_running:
             try:
                 response = health_check()
                 if response:
                     api_running = True
             except requests.exceptions.ConnectionError:
+                trial_count += 1
                 # Handle connection error, e.g. API not yet running
+                if trial_count > max_tries:
+                    st.error("API is not running. Please refresh the page to try again.", icon="🚨")
+                    st.stop()
                 time.sleep(5)  # Sleep for 1 second before retrying
 
     # Enable or disable a button based on API status
@@ -70,7 +61,7 @@ def main():
             name = audio_file.name
         
     if cut_valid:
-        cut_audio = st.checkbox("✂️ Cut duration", disabled= not predict_valid)    
+        cut_audio = st.checkbox("✂️ Cut duration", disabled= not predict_valid, help="Cut a long audio file. Model works best if audio is around 20 seconds")    
         
         if cut_audio:
             audio_data, sample_rate = sf.read(audio_file)
@@ -98,27 +89,32 @@ def main():
             # Display cut audio
             st.audio(audio_file, format='audio/wav')
 
-    result = st.button("Predict", disabled=not predict_valid)
+    result = st.button("Predict", disabled=not predict_valid, help="Send the audio to API to get a prediction")
 
     if result:
         
         predictions = {}
         if isinstance(audio_file, list):
-            predictions = predict_multiple(audio_file)    
+            predictions = predict_multiple(audio_file, selected_model)    
         
         else:
             with st.spinner("Predicting instruments..."):
-                response = predict(audio_file)
+                response = predict(name, "wav", audio_file, selected_model)
         
             if response.status_code == 200:
-                st.success("Audio file uploaded successfully to API.")
-                predictions[name] = response.json()
+                prediction = response.json()["prediction"]
+                predictions[name] = prediction.get(name, "Error making prediction")
             else:
-                st.error("Failed to upload audio file to API.")
+                st.write(response)
+                try:
+                    st.json(response.json())
+                except JSONDecodeError as e: 
+                    st.error(response.text)
+                st.stop()
                 
         # Sort the dictionary alphabetically by key
         sorted_predictions = dict(sorted(predictions.items()))
-
+        
         # Convert the sorted dictionary to a JSON string
         json_string = json.dumps(sorted_predictions) 
         st.download_button(
@@ -126,9 +122,10 @@ def main():
             file_name="predictions.json",
             mime="application/json",
             data=json_string,
+            help="Download the predictions in JSON format"
         )
                 
-        st.json(json_string, expanded=True)
+        display_predictions(sorted_predictions)
     
 
 

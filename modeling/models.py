@@ -99,9 +99,18 @@ class ASTPretrained(nn.Module):
     :rtype: torch.Tensor
     """
 
-    def __init__(self, n_classes: int, dropout: float = 0.5):
+    def __init__(self, n_classes: int, download_weights: bool = True, freeze_body: bool = False, dropout: float = 0.5):
         super().__init__()
-        self.base_model = ASTModel.from_pretrained("MIT/ast-finetuned-audioset-10-10-0.4593")
+        
+        if download_weights:
+            self.base_model = ASTModel.from_pretrained("MIT/ast-finetuned-audioset-10-10-0.4593")
+        else:
+            config = ASTConfig()
+            self.base_model = ASTModel(config=config)
+        
+        if freeze_body:
+            self.base_model = freeze(self.base_model)
+        
         fc_in = self.base_model.config.hidden_size
 
         self.classifier = nn.Sequential(

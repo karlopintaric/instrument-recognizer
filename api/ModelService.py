@@ -20,7 +20,7 @@ THRESHOLDS = [
 
 
 def load_model():
-    model = ASTPretrained(n_classes=11)
+    model = ASTPretrained(n_classes=11, download_weights=False)
     model.load_state_dict(torch.load("models/bpmsync_2.pth", map_location=torch.device("cpu")))
     model.eval()
     return model
