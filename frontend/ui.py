@@ -74,6 +74,7 @@ def main():
 
         else:
             predictions = predict_single(audio_file, name, selected_model)
+            
 
         # Sort the dictionary alphabetically by key
         sorted_predictions = dict(sorted(predictions.items()))

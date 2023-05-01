@@ -144,6 +144,7 @@ def predict_single(audio_file, name, selected_model):
             except JSONDecodeError as e:
                 st.error(response.text)
             st.stop()
+    return predictions
 
 
 @st.cache_data(show_spinner=False)
