@@ -286,7 +286,7 @@ class MetricTracker:
         for k, v in self.result.items():
             print(f"{k}: {v:.2f}")
 
-def get_preds(data: Dataloader, model: nn.Module, device: str="cpu"):
+def get_preds(data: DataLoader, model: nn.Module, device: str="cpu"):
         
         loop = tqdm(data, leave=False)
         model.eval()

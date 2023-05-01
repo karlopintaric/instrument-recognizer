@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from transformers import ASTConfig, ASTModel
 from torch.utils.data import DataLoader
+import copy
 
 
 class StudentAST(nn.Module):
@@ -284,3 +285,16 @@ def interpolate_params(student: nn.Module, teacher: nn.Module):
         new_params[name] = scaled_param
 
     return new_params
+
+def average_models(weights_list, architecture):
+    """
+    Takes in a list of PyTorch model weights and the corresponding architecture, and returns a new model whose parameters
+    are the average of the corresponding parameters of the input models.
+    """
+    new_model = copy.deepcopy(architecture) # create new instance of the same model class
+    num_models = len(weights_list)
+    for name, param in new_model.named_parameters():
+        params = [weights_list[i][name] for i in range(num_models)]
+        avg_param = torch.mean(torch.stack(params), dim=0)
+        new_model.state_dict()[name].copy_(avg_param)
+    return new_model

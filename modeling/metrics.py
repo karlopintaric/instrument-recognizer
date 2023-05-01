@@ -5,6 +5,7 @@ from sklearn.metrics import (
     hamming_loss,
     precision_recall_curve,
     zero_one_loss,
+    accuracy_score
 )
 
 
@@ -23,7 +24,7 @@ def hamming_score(preds, targets):
     :rtype: float
     """
 
-    preds = (preds > optimize_threshold(preds, targets)).astype(float)
+    preds = (preds > optimize_accuracy(preds, targets)).astype(float)
     return 1 - hamming_loss(targets, preds)
 
 
@@ -44,7 +45,7 @@ def zero_one_score(preds, targets):
     :rtype: float
     """
 
-    preds = (preds > optimize_threshold(preds, targets)).astype(float)
+    preds = (preds > optimize_accuracy(preds, targets)).astype(float)
     return 1 - zero_one_loss(targets, preds, normalize=True)
 
 
@@ -64,7 +65,7 @@ def mean_f1_score(preds, targets):
     :rtype: float
     """
 
-    preds = (preds > optimize_threshold(preds, targets)).astype(float)
+    preds = (preds > optimize_f1_score(preds, targets)).astype(float)
     return f1_score(targets, preds, average="samples", zero_division=0)
 
 
@@ -85,7 +86,7 @@ def per_instr_f1_score(preds, targets):
     :rtype: numpy array
     """
 
-    preds = (preds > optimize_threshold(preds, targets)).astype(float)
+    preds = (preds > optimize_f1_score(preds, targets)).astype(float)
     return f1_score(targets, preds, average=None, zero_division=0)
 
 
@@ -109,7 +110,7 @@ def mean_average_precision(preds, targets):
     return average_precision_score(targets, preds, average="samples")
 
 
-def optimize_threshold(preds, targets):
+def optimize_f1_score(preds, targets):
     """
     Optimize Threshold.
 
@@ -134,5 +135,25 @@ def optimize_threshold(preds, targets):
         ix = np.argmax(fscore)
         best_thresh = thresholds[ix]
         label_thresholds[i] = best_thresh
-
+        
     return label_thresholds
+        
+def optimize_accuracy(preds, targets):
+
+    # Vary the threshold for each label and calculate accuracy for each threshold
+    thresholds = np.arange(0.001, 1, 0.001)
+    best_thresholds = []
+    for i in range(preds.shape[1]):
+        accuracies = []
+        for th in thresholds:
+            y_pred = (preds[:, i] >= th).astype(int) # Convert probabilities to binary predictions using the threshold
+            acc = accuracy_score(targets[:, i], y_pred)
+            accuracies.append(acc)
+        # Find the threshold that gives the highest accuracy for this label
+        best_idx = np.argmax(accuracies)
+        best_threshold = thresholds[best_idx]
+        best_thresholds.append(best_threshold)
+    
+    return best_thresholds
+
+        
