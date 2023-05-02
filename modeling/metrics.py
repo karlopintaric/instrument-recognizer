@@ -151,7 +151,7 @@ def optimize_f1_score(preds, targets):
 def optimize_accuracy(preds, targets):
 
     # Vary the threshold for each label and calculate accuracy for each threshold
-    thresholds = np.arange(0.001, 1, 0.001)
+    thresholds = np.arange(0.0001, 1, 0.0001)
     best_thresholds = np.empty(preds.shape[1])
     for i in range(preds.shape[1]):
         accuracies = []
