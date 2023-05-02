@@ -286,15 +286,21 @@ def interpolate_params(student: nn.Module, teacher: nn.Module):
 
     return new_params
 
-def average_models(weights_list, architecture):
-    """
-    Takes in a list of PyTorch model weights and the corresponding architecture, and returns a new model whose parameters
-    are the average of the corresponding parameters of the input models.
-    """
-    new_model = copy.deepcopy(architecture) # create new instance of the same model class
-    num_models = len(weights_list)
-    for name, param in new_model.named_parameters():
-        params = [weights_list[i][name] for i in range(num_models)]
-        avg_param = torch.mean(torch.stack(params), dim=0)
-        new_model.state_dict()[name].copy_(avg_param)
-    return new_model
+def average_model_weights(model_weights_list):
+    num_models = len(model_weights_list)
+    averaged_weights = {}
+    
+    # Load the first model weights
+    state_dict = torch.load(model_weights_list[0])
+    
+    # Iterate through the remaining models and add their weights to the first model's weights
+    for i in range(1, num_models):
+        state_dict_i = torch.load(model_weights_list[i])
+        for key in state_dict.keys():
+            state_dict[key] += state_dict_i[key]
+    
+    # Compute the average of the weights
+    for key in state_dict.keys():
+        averaged_weights[key] = state_dict[key] / num_models
+    
+    return averaged_weights
