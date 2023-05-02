@@ -9,7 +9,7 @@ from sklearn.metrics import (
 )
 
 
-def hamming_score(preds, targets):
+def hamming_score(preds, targets, thresholds: np.array=None):
     """Compute Hamming Score.
 
     This function computes the Hamming Score, a performance metric used for multi-label classification tasks.
@@ -21,14 +21,16 @@ def hamming_score(preds, targets):
     :param targets: The ground truth labels.
     :type targets: numpy array
     :return: The computed Hamming Score.
-    :rtype: float
+    :rtype: int
     """
-
-    preds = (preds > optimize_accuracy(preds, targets)).astype(float)
+    if thresholds is None:
+        thresholds = optimize_accuracy(preds, targets)
+    
+    preds = (preds > thresholds).astype(int)
     return 1 - hamming_loss(targets, preds)
 
 
-def zero_one_score(preds, targets):
+def zero_one_score(preds, targets, thresholds: np.array=None):
     """
     Compute Zero-One Score.
 
@@ -42,14 +44,17 @@ def zero_one_score(preds, targets):
     :param targets: The ground truth labels.
     :type targets: numpy array
     :return: The computed Zero-One Score.
-    :rtype: float
+    :rtype: int
     """
 
-    preds = (preds > optimize_accuracy(preds, targets)).astype(float)
+    if thresholds is None:
+        thresholds = optimize_accuracy(preds, targets)
+    
+    preds = (preds > thresholds).astype(int)
     return 1 - zero_one_loss(targets, preds, normalize=True)
 
 
-def mean_f1_score(preds, targets):
+def mean_f1_score(preds, targets, thresholds: np.array=None):
     """Compute Mean F1 Score.
 
     This function computes the Mean F1 Score, a performance metric used for multi-label
@@ -62,14 +67,16 @@ def mean_f1_score(preds, targets):
     :param targets: The ground truth labels.
     :type targets: numpy array
     :return: The computed Mean F1 Score.
-    :rtype: float
+    :rtype: int
     """
-
-    preds = (preds > optimize_f1_score(preds, targets)).astype(float)
+    if thresholds is None:
+        thresholds = optimize_f1_score(preds, targets)
+    
+    preds = (preds > thresholds).astype(int)
     return f1_score(targets, preds, average="samples", zero_division=0)
 
 
-def per_instr_f1_score(preds, targets):
+def per_instr_f1_score(preds, targets, thresholds: np.array=None):
     """Compute Per-Instrument F1 Score.
 
     This function computes the F1 Score for each instrument separately in a multi-label
@@ -85,8 +92,11 @@ def per_instr_f1_score(preds, targets):
     :return: The computed Per-Instrument F1 Score.
     :rtype: numpy array
     """
+    
+    if thresholds is None:
+        thresholds = optimize_f1_score(preds, targets)
 
-    preds = (preds > optimize_f1_score(preds, targets)).astype(float)
+    preds = (preds > thresholds).astype(int)
     return f1_score(targets, preds, average=None, zero_division=0)
 
 
@@ -104,7 +114,7 @@ def mean_average_precision(preds, targets):
     :param targets: The ground truth labels.
     :type targets: numpy array
     :return: The computed mAP score.
-    :rtype: float
+    :rtype: int
     """
 
     return average_precision_score(targets, preds, average="samples")
@@ -142,7 +152,7 @@ def optimize_accuracy(preds, targets):
 
     # Vary the threshold for each label and calculate accuracy for each threshold
     thresholds = np.arange(0.001, 1, 0.001)
-    best_thresholds = []
+    best_thresholds = np.empty(preds.shape[1])
     for i in range(preds.shape[1]):
         accuracies = []
         for th in thresholds:
@@ -151,8 +161,7 @@ def optimize_accuracy(preds, targets):
             accuracies.append(acc)
         # Find the threshold that gives the highest accuracy for this label
         best_idx = np.argmax(accuracies)
-        best_threshold = thresholds[best_idx]
-        best_thresholds.append(best_threshold)
+        best_thresholds[i] = thresholds[best_idx]
     
     return best_thresholds
 

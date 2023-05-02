@@ -289,6 +289,7 @@ class MetricTracker:
 def get_preds(data: DataLoader, model: nn.Module, device: str="cpu"):
         
         loop = tqdm(data, leave=False)
+        model = model.to(device)
         model.eval()
 
         preds = []
