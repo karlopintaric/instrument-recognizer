@@ -1,14 +1,16 @@
-import sys
 import logging
+import sys
 from logging.handlers import RotatingFileHandler
-sys.path.append("../")
 from typing import Dict
 
 from fastapi import Depends, FastAPI, File, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from api.ModelService import ModelServiceAST
 from pydantic import BaseModel, validator
+
+sys.path.append("../")
+
+from api.ModelService import ModelServiceAST  # noqa
 
 ml_models = {}
 ml_models["Accuracy"] = ModelServiceAST()
@@ -23,15 +25,16 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 # Create a rotating file handler to save logs to a file
-handler = RotatingFileHandler('api/logs/app.log', maxBytes=100000, backupCount=5)
+handler = RotatingFileHandler("api/logs/app.log", maxBytes=100000, backupCount=5)
 handler.setLevel(logging.DEBUG)
 
 # Define the log format
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 
 # Add the handler to the logger
 logger.addHandler(handler)
+
 
 class InvalidFileTypeError(Exception):
     def __init__(self, value: str, message: str):
@@ -45,6 +48,7 @@ class InvalidModelError(Exception):
         self.value = value
         self.message = message
         super().__init__(message)
+
 
 class MissingFileError(Exception):
     def __init__(self):
@@ -92,10 +96,12 @@ def model_exception_handler(request, ex):
     logger.error(f"Invalid model error: {ex}")
     return JSONResponse(content={"error": "Bad Request", "detail": ex.message}, status_code=400)
 
+
 @app.exception_handler(MissingFileError)
 def handle_missing_file_error(request, ex):
     logger.error(f"Missing file error: {ex}")
     return JSONResponse(content={"error": "Bad Request", "detail": ex.message}, status_code=400)
+
 
 @app.exception_handler(Exception)
 def handle_exceptions(request, ex):
@@ -114,7 +120,7 @@ def health_check():
 
 
 @app.post("/predict")
-def predict(request: PredictionRequest = Depends(), file: UploadFile = File(...)) -> PredictionResult: # noqa
+def predict(request: PredictionRequest = Depends(), file: UploadFile = File(...)) -> PredictionResult:  # noqa
     if not file:
         raise MissingFileError
     logger.info(f"Prediction request received: {request}")

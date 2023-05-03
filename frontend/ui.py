@@ -40,7 +40,7 @@ def main():
 
     # Enable or disable a button based on API status
     predict_valid = False
-    cut_valid = True
+    cut_valid = False
 
     if api_running:
         st.info("API is running", icon="🤖")
@@ -54,6 +54,7 @@ def main():
         else:
             audio_file = audio_file[0]
             name = audio_file.name
+            cut_valid=True
 
     if cut_valid:
         cut_audio = st.checkbox(

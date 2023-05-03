@@ -1,19 +1,19 @@
 import sys
-sys.path.append("../")
 
+import numpy as np
 import torch
 from torchvision import transforms
-import numpy as np
-import asyncio
 
-from modeling import ASTPretrained, FeatureExtractor, PreprocessPipeline
+sys.path.append("../")
+
+from modeling import ASTPretrained, FeatureExtractor, PreprocessPipeline  # noqa
 
 CLASSES = ["tru", "sax", "vio", "gac", "org", "cla", "flu", "voi", "gel", "cel", "pia"]
 
 
 def load_model():
     model = ASTPretrained(n_classes=11, download_weights=False)
-    model.load_state_dict(torch.load("api/models/acc_model_ast.pth", map_location=torch.device('cpu')))
+    model.load_state_dict(torch.load("api/models/acc_model_ast.pth", map_location=torch.device("cpu")))
     model.eval()
     return model
 
@@ -21,6 +21,7 @@ def load_model():
 def load_labels():
     labels = {i: CLASSES[i] for i in range(len(CLASSES))}
     return labels
+
 
 def load_thresholds():
     thresholds = np.load("api/models/acc_model_thresh.npy", allow_pickle=True)
