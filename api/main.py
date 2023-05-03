@@ -46,6 +46,11 @@ class InvalidModelError(Exception):
         self.message = message
         super().__init__(message)
 
+class MissingFileError(Exception):
+    def __init__(self):
+        self.message = "File cannot be None"
+        super().__init__(self.message)
+
 
 class PredictionRequest(BaseModel):
     file_name: str
@@ -87,6 +92,10 @@ def model_exception_handler(request, ex):
     logger.error(f"Invalid model error: {ex}")
     return JSONResponse(content={"error": "Bad Request", "detail": ex.message}, status_code=400)
 
+@app.exception_handler(MissingFileError)
+def handle_missing_file_error(request, ex):
+    logger.error(f"Missing file error: {ex}")
+    return JSONResponse(content={"error": "Bad Request", "detail": ex.message}, status_code=400)
 
 @app.exception_handler(Exception)
 def handle_exceptions(request, ex):
@@ -106,6 +115,8 @@ def health_check():
 
 @app.post("/predict")
 def predict(request: PredictionRequest = Depends(), file: UploadFile = File(...)) -> PredictionResult: # noqa
+    if not file:
+        raise MissingFileError
     logger.info(f"Prediction request received: {request}")
     output = ml_models[request.model_name].get_prediction(file.file)
     logger.info(f"Prediction result: {output}")

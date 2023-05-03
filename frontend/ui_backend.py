@@ -61,7 +61,7 @@ def cut_audio_file(audio_file):
     st.info(f"Audio Duration: {duration} seconds")
 
     # Get start and end time for cutting
-    start_time = st.number_input("Start Time (seconds)", min_value=0.0, max_value=duration, step=0.1)
+    start_time = st.number_input("Start Time (seconds)", min_value=0.0, max_value=duration-1, step=0.1)
     end_time = st.number_input("End Time (seconds)", min_value=start_time, value=duration, max_value=duration, step=0.1)
 
     # Convert start and end time to sample indices
