@@ -1,29 +1,37 @@
-from contextlib import asynccontextmanager
+import sys
+import logging
+from logging.handlers import RotatingFileHandler
+sys.path.append("../")
 from typing import Dict
 
 from fastapi import Depends, FastAPI, File, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from ModelService import ModelServiceAST
+from api.ModelService import ModelServiceAST
 from pydantic import BaseModel, validator
 
 ml_models = {}
+ml_models["Accuracy"] = ModelServiceAST()
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Load the ML model
-    ml_models["Accuracy"] = ModelServiceAST()
-    yield
-    # Clean up the ML models and release the resources
-    ml_models.clear()
-
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 
 # Define the allowed file formats and maximum file size (in bytes)
 ALLOWED_FILE_FORMATS = ["wav"]
 
+# Configure logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+# Create a rotating file handler to save logs to a file
+handler = RotatingFileHandler('api/logs/app.log', maxBytes=100000, backupCount=5)
+handler.setLevel(logging.DEBUG)
+
+# Define the log format
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+
+# Add the handler to the logger
+logger.addHandler(handler)
 
 class InvalidFileTypeError(Exception):
     def __init__(self, value: str, message: str):
@@ -63,37 +71,44 @@ class PredictionResult(BaseModel):
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request, ex):
+def validation_exception_handler(request, ex):
+    logger.error(f"Request validation error: {ex}")
     return JSONResponse(content={"error": "Bad Request", "detail": ex.errors()}, status_code=400)
 
 
 @app.exception_handler(InvalidFileTypeError)
-async def filetype_exception_handler(request, ex):
+def filetype_exception_handler(request, ex):
+    logger.error(f"Invalid file type error: {ex}")
     return JSONResponse(content={"error": "Bad Request", "detail": ex.message}, status_code=400)
 
 
 @app.exception_handler(InvalidModelError)
-async def model_exception_handler(request, ex):
+def model_exception_handler(request, ex):
+    logger.error(f"Invalid model error: {ex}")
     return JSONResponse(content={"error": "Bad Request", "detail": ex.message}, status_code=400)
 
 
 @app.exception_handler(Exception)
-async def handle_exceptions(request, ex):
+def handle_exceptions(request, ex):
+    logger.exception(f"Internal server error: {ex}")
     # If an exception occurs during processing, return a JSON response with an error message
     return JSONResponse(content={"error": "Internal Server Error", "detail": str(ex)}, status_code=500)
 
 
 @app.get("/health-check")
-async def health_check():
+def health_check():
     """
     Health check endpoint to verify if the API is running.
     """
+    logger.info("Health check endpoint was hit")
     return {"status": "API is running"}
 
 
 @app.post("/predict")
 def predict(request: PredictionRequest = Depends(), file: UploadFile = File(...)) -> PredictionResult: # noqa
+    logger.info(f"Prediction request received: {request}")
     output = ml_models[request.model_name].get_prediction(file.file)
+    logger.info(f"Prediction result: {output}")
     prediction_result = PredictionResult(prediction={request.file_name: output})
 
     return prediction_result

@@ -4,15 +4,11 @@ import time
 
 def launch_api():
     # Launch the API script with uvicorn from the api directory
-    api_dir = "api"
-    uvicorn_command = "uvicorn"
-    subprocess.run([uvicorn_command, "app:app", "--host", "0.0.0.0" , "--port", "8000"], cwd=api_dir)
+    subprocess.run(["uvicorn", "api.main:app", "--host", "0.0.0.0" , "--port", "8000"])
 
 def launch_streamlit():
     # Launch the Streamlit script from the streamlit directory
-    streamlit_dir = "frontend"
-    streamlit_script = "ui.py"
-    subprocess.run(["streamlit", "run", streamlit_script, "--server.port", "8501"], cwd=streamlit_dir)
+    subprocess.run(["streamlit", "run", "frontend/ui.py", "--server.port", "8501"])
 
 if __name__ == '__main__':
 # Launch Streamlit and API in separate threads
