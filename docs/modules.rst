@@ -1,7 +1,9 @@
-lumen_irmas
+lumen-irmas
 ===========
 
 .. toctree::
    :maxdepth: 4
 
-   lumen_irmas
+   api
+   frontend
+   modeling

@@ -7,8 +7,8 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'LUMEN IRMAS'
-copyright = '2023, DrIng'
-author = 'DrIng'
+copyright = '2023, Karlo Pintaric i Tatjana Cigula'
+author = 'Karlo Pintaric i Tatjana Cigula'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -30,6 +30,6 @@ release = "0.1.0dev"
 
 import sys, os
 
-sys.path.insert(0, os.path.abspath("../lumen_irmas"))
+sys.path.insert(0, os.path.abspath("../"))
 
 extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode", "sphinx.ext.todo"]

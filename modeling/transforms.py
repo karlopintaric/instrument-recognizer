@@ -155,14 +155,6 @@ class PreprocessPipeline(Preprocess):
     """
 
     def __init__(self, target_sr):
-        """
-        Initialize PreprocessPipeline object.
-
-        :param target_sr: The target sampling rate to resample to.
-        :type target_sr: int
-
-        """
-
         self.target_sr = target_sr
 
     def __call__(self, path):

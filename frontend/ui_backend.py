@@ -3,6 +3,7 @@ import os
 import time
 from json import JSONDecodeError
 
+
 import requests
 import soundfile as sf
 import streamlit as st
@@ -54,6 +55,7 @@ def check_for_api(max_tries: int):
 
 
 def cut_audio_file(audio_file):
+    name = audio_file.name
     audio_data, sample_rate = sf.read(audio_file)
 
     # Display audio duration
@@ -77,6 +79,7 @@ def cut_audio_file(audio_file):
 
     # Display cut audio
     st.audio(audio_file, format="audio/wav")
+    audio_file = (name, audio_file)
 
     return audio_file
 
@@ -116,9 +119,9 @@ def health_check():
         return False
 
 
-def predict(file_name, data, model_name):
+def predict(data, model_name):
     file = {"file": data}
-    request_data = {"file_name": file_name, "model_name": model_name}
+    request_data = {"model_name": model_name}
 
     response = requests.post(
         f"{backend}/predict", params=request_data, files=file, timeout=100
@@ -128,11 +131,12 @@ def predict(file_name, data, model_name):
 
 
 @st.cache_data(show_spinner=False)
-def predict_single(audio_file, name, selected_model):
+def predict_single(audio_file, selected_model):
     predictions = {}
+    name = audio_file.name
 
     with st.spinner("Predicting instruments..."):
-        response = predict(name, audio_file, selected_model)
+        response = predict(audio_file, selected_model)
 
         if response.status_code == 200:
             prediction = response.json()["prediction"]

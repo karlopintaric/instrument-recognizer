@@ -1,19 +1,22 @@
-import sys
-
+from pathlib import Path
 import numpy as np
 import torch
 from torchvision import transforms
 
-sys.path.append("../")
-
 from modeling import ASTPretrained, FeatureExtractor, PreprocessPipeline  # noqa
+
+MODELS_FOLDER = Path(__file__).parent / "models"
 
 CLASSES = ["tru", "sax", "vio", "gac", "org", "cla", "flu", "voi", "gel", "cel", "pia"]
 
 
-def load_model():
-    model = ASTPretrained(n_classes=11, download_weights=False)
-    model.load_state_dict(torch.load("api/models/acc_model_ast.pth", map_location=torch.device("cpu")))
+def load_model(model_type: str):
+    
+    if model_type == "accuracy":
+        model = ASTPretrained(n_classes=11, download_weights=False)
+        model.load_state_dict(torch.load(f"{MODELS_FOLDER}/acc_model_ast.pth", map_location=torch.device("cpu")))
+    else:
+        pass
     model.eval()
     return model
 
@@ -24,13 +27,13 @@ def load_labels():
 
 
 def load_thresholds():
-    thresholds = np.load("api/models/acc_model_thresh.npy", allow_pickle=True)
+    thresholds = np.load(f"{MODELS_FOLDER}/acc_model_thresh.npy", allow_pickle=True)
     return thresholds
 
 
 class ModelServiceAST:
-    def __init__(self):
-        self.model = load_model()
+    def __init__(self, model_type: str):
+        self.model = load_model(model_type)
         self.labels = load_labels()
         self.thresholds = load_thresholds()
         self.transform = transforms.Compose([PreprocessPipeline(target_sr=16000), FeatureExtractor(sr=16000)])

@@ -1,6 +1,9 @@
+import os,sys
+from pathlib import Path
 import json
 
 import streamlit as st
+
 from ui_backend import (
     check_for_api,
     cut_audio_file,
@@ -53,7 +56,6 @@ def main():
             cut_valid = False
         else:
             audio_file = audio_file[0]
-            name = audio_file.name
             cut_valid=True
 
     if cut_valid:
@@ -65,6 +67,7 @@ def main():
 
         if cut_audio:
             audio_file = cut_audio_file(audio_file)
+            
 
     result = st.button("Predict", disabled=not predict_valid, help="Send the audio to API to get a prediction")
 
@@ -74,7 +77,7 @@ def main():
             predictions = predict_multiple(audio_file, selected_model)
 
         else:
-            predictions = predict_single(audio_file, name, selected_model)
+            predictions = predict_single(audio_file, selected_model)
             
 
         # Sort the dictionary alphabetically by key

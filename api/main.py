@@ -2,18 +2,19 @@ import logging
 import sys
 from logging.handlers import RotatingFileHandler
 from typing import Dict
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, validator
 
-sys.path.append("../")
+from .ModelService import ModelServiceAST  # noqa
 
-from api.ModelService import ModelServiceAST  # noqa
+LOG_SAVE_DIR = Path(__file__).parent / "logs"
 
 ml_models = {}
-ml_models["Accuracy"] = ModelServiceAST()
+ml_models["Accuracy"] = ModelServiceAST(model_type="accuracy")
 
 app = FastAPI()
 
@@ -25,7 +26,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 # Create a rotating file handler to save logs to a file
-handler = RotatingFileHandler("api/logs/app.log", maxBytes=100000, backupCount=5)
+handler = RotatingFileHandler(f"{LOG_SAVE_DIR}/app.log", maxBytes=100000, backupCount=5)
 handler.setLevel(logging.DEBUG)
 
 # Define the log format
@@ -37,17 +38,15 @@ logger.addHandler(handler)
 
 
 class InvalidFileTypeError(Exception):
-    def __init__(self, value: str, message: str):
-        self.value = value
-        self.message = message
-        super().__init__(message)
+    def __init__(self):
+        self.message = "Only wav files are supported"
+        super().__init__(self.message)
 
 
 class InvalidModelError(Exception):
-    def __init__(self, value: str, message: str):
-        self.value = value
-        self.message = message
-        super().__init__(message)
+    def __init__(self):
+        self.message = "Selected model doesn't exist"
+        super().__init__(self.message)
 
 
 class MissingFileError(Exception):
@@ -57,23 +56,14 @@ class MissingFileError(Exception):
 
 
 class PredictionRequest(BaseModel):
-    file_name: str
     model_name: str
-
-    @validator("file_name")
-    @classmethod
-    def valid_type(cls, v):
-        if v.split(".")[-1].lower() not in ALLOWED_FILE_FORMATS:
-            raise InvalidFileTypeError(value=v, message="Only wav files are supported")
-        return v
 
     @validator("model_name")
     @classmethod
     def valid_model(cls, v):
         if v not in ml_models.keys():
-            raise InvalidModelError(value=v, message="Selected model doesn't exist")
+            raise InvalidModelError
         return v
-
 
 class PredictionResult(BaseModel):
     prediction: Dict[str, Dict[str, int]]
@@ -109,6 +99,10 @@ def handle_exceptions(request, ex):
     # If an exception occurs during processing, return a JSON response with an error message
     return JSONResponse(content={"error": "Internal Server Error", "detail": str(ex)}, status_code=500)
 
+@app.get("/")
+def root():
+    logger.info("Received request to root endpoint")
+    return {"message": "Welcome to my API. Go to /docs to view the documentation."}
 
 @app.get("/health-check")
 def health_check():
@@ -123,9 +117,11 @@ def health_check():
 def predict(request: PredictionRequest = Depends(), file: UploadFile = File(...)) -> PredictionResult:  # noqa
     if not file:
         raise MissingFileError
+    if file.filename.split(".")[-1].lower() not in ALLOWED_FILE_FORMATS:
+        raise InvalidFileTypeError
     logger.info(f"Prediction request received: {request}")
     output = ml_models[request.model_name].get_prediction(file.file)
     logger.info(f"Prediction result: {output}")
-    prediction_result = PredictionResult(prediction={request.file_name: output})
+    prediction_result = PredictionResult(prediction={file.filename: output})
 
     return prediction_result
