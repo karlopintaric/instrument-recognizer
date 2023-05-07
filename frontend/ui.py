@@ -57,6 +57,7 @@ def main():
         else:
             audio_file = audio_file[0]
             cut_valid=True
+            name = audio_file.name
 
     if cut_valid:
         cut_audio = st.checkbox(
@@ -66,7 +67,7 @@ def main():
         )
 
         if cut_audio:
-            audio_file = cut_audio_file(audio_file)
+            audio_file = cut_audio_file(audio_file, name)
             
 
     result = st.button("Predict", disabled=not predict_valid, help="Send the audio to API to get a prediction")
@@ -77,7 +78,7 @@ def main():
             predictions = predict_multiple(audio_file, selected_model)
 
         else:
-            predictions = predict_single(audio_file, selected_model)
+            predictions = predict_single(audio_file, name, selected_model)
             
 
         # Sort the dictionary alphabetically by key

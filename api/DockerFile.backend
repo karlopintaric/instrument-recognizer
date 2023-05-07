@@ -5,16 +5,16 @@ FROM python:3.9-slim
 WORKDIR /api
 
 # Copy the setup.py file and the package directory into the container
-COPY ../setup.py .
-COPY ../modeling ./modeling
+COPY ./setup.py .
 
 # Install the package and its dependencies
 RUN pip install --no-cache-dir .[backend] torch==1.13.1+cpu torchvision==0.14.1+cpu torchaudio==0.13.1 --extra-index-url https://download.pytorch.org/whl/cpu
 
+COPY ./modeling ./modeling
 COPY api/ .
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0"]
 
     

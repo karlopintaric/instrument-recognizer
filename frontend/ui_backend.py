@@ -8,7 +8,7 @@ import requests
 import soundfile as sf
 import streamlit as st
 
-if os.environ.get("DOCKER"):
+if os.environ.get("IS_DOCKER", False):
     backend = "http://api:8000"
 else:
     backend = "http://0.0.0.0:8000"
@@ -37,6 +37,7 @@ def load_audio():
         return None
 
 
+@st.cache_data(show_spinner=False)
 def check_for_api(max_tries: int):
     trial_count = 0
 
@@ -54,12 +55,11 @@ def check_for_api(max_tries: int):
         st.stop()
 
 
-def cut_audio_file(audio_file):
-    name = audio_file.name
+def cut_audio_file(audio_file, name):
     audio_data, sample_rate = sf.read(audio_file)
 
     # Display audio duration
-    duration = len(audio_data) / sample_rate
+    duration = round(len(audio_data) / sample_rate, 2)
     st.info(f"Audio Duration: {duration} seconds")
 
     # Get start and end time for cutting
@@ -131,9 +131,8 @@ def predict(data, model_name):
 
 
 @st.cache_data(show_spinner=False)
-def predict_single(audio_file, selected_model):
+def predict_single(audio_file, name, selected_model):
     predictions = {}
-    name = audio_file.name
 
     with st.spinner("Predicting instruments..."):
         response = predict(audio_file, selected_model)
@@ -162,7 +161,7 @@ def predict_multiple(audio_files, selected_model):
 
     for i, file in enumerate(audio_files):
         name = file.name
-        response = predict(name, file, selected_model)
+        response = predict(file, selected_model)
         if response.status_code == 200:
             prediction = response.json()["prediction"]
             predictions[name] = prediction[name]

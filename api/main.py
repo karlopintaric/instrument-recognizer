@@ -9,7 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, validator
 
-from .ModelService import ModelServiceAST  # noqa
+from ModelService import ModelServiceAST  # noqa
 
 LOG_SAVE_DIR = Path(__file__).parent / "logs"
 

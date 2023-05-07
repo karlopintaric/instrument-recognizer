@@ -4,11 +4,14 @@ FROM python:3.9-slim
 # Set the working directory in the container
 WORKDIR /app
 
-RUN pip install streamlit requests
+RUN pip install streamlit==1.21.0 requests==2.28.2 soundfile==0.12.1
 
 COPY frontend/ .
+COPY ./.streamlit ./.streamlit
+
+ENV IS_DOCKER Yes
 
 EXPOSE 8501
 
-CMD ["streamlit", "run", "ui.py"]
+CMD ["streamlit", "run", "ui.py","--server.port=8501", "--server.address=0.0.0.0"]
 
