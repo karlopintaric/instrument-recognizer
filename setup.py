@@ -30,7 +30,10 @@ setup(
             "wandb==0.14.2",
             "pytest==7.3.1",
             "joblib==1.2.0",
-            "PyYAML==6.0"
+            "PyYAML==6.0",
+            "flake8==6.0.0",
+            "isort== 5.12.0",
+            "black==23.3.0"
             ]
     },
 )
