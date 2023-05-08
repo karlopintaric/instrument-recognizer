@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Tuple
 
 import numpy as np
 import torch
@@ -61,7 +62,8 @@ class BaseLearner(ABC):
 
 class Learner(BaseLearner):
     def __init__(self, train_dl: DataLoader, valid_dl: DataLoader, model: nn.Module, config):
-        """A class that inherits from the BaseLearner class and represents a learner object.
+        """
+        A class that inherits from the BaseLearner class and represents a learner object.
 
         :param train_dl: DataLoader for training data
         :type train_dl: DataLoader
@@ -115,7 +117,8 @@ class Learner(BaseLearner):
                 print(f"| EPOCH: {epoch+1} | train_loss: {train_loss:.3f} | val_loss: {val_loss:.3f} |\n")
                 self.metrics.display()
 
-        torch.save(self.model.module.state_dict(), f"{model_name}.pth")
+        if self.config.save_last_checkpoint:
+            torch.save(self.model.module.state_dict(), f"{model_name}.pth")
 
     def _train_epoch(self, distill: bool = False):
         """
@@ -168,7 +171,7 @@ class Learner(BaseLearner):
             train_loss += loss.item()
 
             if distill:
-                if (idx + 1) % 2500 == 0:
+                if ((idx + 1) % 2500 == 0) and not (idx + 1 == num_batches):
                     val_loss = self._test_epoch()
                     wandb.log({"val_loss": val_loss})
                     self.model.train()
@@ -212,6 +215,7 @@ class Learner(BaseLearner):
 
         return test_loss
 
+
 class KDLearner(Learner):
     """
     Knowledge Distillation Learner class for training a student model with knowledge distillation.
@@ -251,7 +255,7 @@ class KDLearner(Learner):
 class MetricTracker:
     """
     Metric Tracker class for tracking evaluation metrics during model validation.
-    his class is used to track and display evaluation metrics during model validation.
+    This class is used to track and display evaluation metrics during model validation.
     It keeps track of the results of the provided metric functions for each validation batch,
     and logs them to Weights & Biases using wandb.log(). The display() method can be used
     to print the tracked metric results, if verbose is set to True during initialization.
@@ -286,23 +290,44 @@ class MetricTracker:
         for k, v in self.result.items():
             print(f"{k}: {v:.2f}")
 
-def get_preds(data: DataLoader, model: nn.Module, device: str="cpu"):
-        
-        loop = tqdm(data, leave=False)
-        model = model.to(device)
-        model.eval()
 
-        preds = []
-        targets = []
+def get_preds(data: DataLoader, model: nn.Module, device: str = "cpu") -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Get predictions and targets from a data loader and a PyTorch model.
 
-        with torch.no_grad():
-            for xb, yb in loop:
-                xb, yb = xb.to(device), yb.to(device)
-                pred = model(xb)
-                pred = torch.sigmoid(pred)
-                preds.extend(pred.cpu().numpy())
-                targets.extend(yb.cpu().numpy())
+    :param data: A PyTorch DataLoader containing the data to predict on.
+    :type data: torch.utils.data.DataLoader
+    :param model: A PyTorch model to use for predictions.
+    :type model: torch.nn.Module
+    :param device: The device to use for predictions (default is "cpu").
+    :type device: str
+    :raises TypeError: If any of the input arguments is of an incorrect type.
+    :return: A tuple containing two NumPy arrays: the predictions and the targets.
+    :rtype: Tuple[numpy.ndarray, numpy.ndarray]
+    """
 
-        preds, targets = np.array(preds), np.array(targets)
+    if not isinstance(data, DataLoader):
+        raise TypeError("The 'data' argument must be a PyTorch DataLoader.")
+    if not isinstance(model, nn.Module):
+        raise TypeError("The 'model' argument must be a PyTorch model.")
+    if not isinstance(device, str):
+        raise TypeError("The 'device' argument must be a string.")
 
-        return preds, targets
+    loop = tqdm(data, leave=False)
+    model = model.to(device)
+    model.eval()
+
+    preds = []
+    targets = []
+
+    with torch.no_grad():
+        for xb, yb in loop:
+            xb, yb = xb.to(device), yb.to(device)
+            pred = model(xb)
+            pred = torch.sigmoid(pred)
+            preds.extend(pred.cpu().numpy())
+            targets.extend(yb.cpu().numpy())
+
+    preds, targets = np.array(preds), np.array(targets)
+
+    return preds, targets

@@ -5,7 +5,6 @@ from typing import Union
 
 import librosa
 import numpy as np
-import torch.optim as optim
 import yaml
 
 CLASSES = ["tru", "sax", "vio", "gac", "org", "cla", "flu", "voi", "gel", "cel", "pia"]
@@ -160,6 +159,7 @@ def load_raw_file(path: Union[str, Path]):
     :rtype: tuple
     """
     return librosa.load(path, sr=None, mono=False)
+
 
 def get_onset(signal, sr):
     """
@@ -334,11 +334,3 @@ def sync_onset(file_to_sync: np.ndarray, sr: int, onset_base: float, onset: floa
         return np.pad(file_to_sync, (diff, 0), mode="constant", constant_values=0)
     else:
         return file_to_sync[diff:]
-
-
-if __name__ == "__main__":
-    import models
-
-    config = parse_config("./config.yaml")
-    model = models.RNN(128, 64, 3, 11)
-    optimizer = init_obj(config.optimizer, optim, model.parameters())

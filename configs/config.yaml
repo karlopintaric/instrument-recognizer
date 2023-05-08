@@ -1,7 +1,7 @@
 
 # Data location
-train_dir: ../data/raw/IRMAS_Training_Data
-valid_dir: 
+train_dir: ../data/processed
+valid_dir: ../data/raw/IRTestingData
 
 # Fit parameters
 epochs: 3
@@ -10,57 +10,50 @@ num_accum: 4
 
 # Per layer learning rates and weight decay
 LLRD:
-  base_lr: 2.0e-05
-  lr_decay_rate: 0.85
-  weight_decay: 8.0e-05
-  
-  body: base_model
-  head: classifier
+    base_lr: 4.3e-6
+    lr_decay_rate: 0.8
+    weight_decay: 2.3e-3
+    
+    body: base_model
+    head: classifier
 
-# Model settings
-dropout: 0.5
-model_name: model
+dropout: 0.27
 
 # Loss function
 loss:
-  FocalLoss:
-    alpha: -1
-    gamma: 2
+  BCELoss: null
 
 # Metrics
 metrics:
-- mean_average_precision
-- hamming_score
+  - mean_average_precision
 
 # Optimizer
 optimizer:
-  AdamW:
-    weight_decay: 0
+    AdamW: null
 
 scheduler:
-  OneCycleLR:
-    anneal_strategy: cos
-    pct_start: 0.05
+    OneCycleLR:
+      anneal_strategy: cos
+      pct_start: 0.28
 
 # Data processing
 preprocess:
-  PreprocessPipeline:
-    target_sr: 16000
+    PreprocessPipeline:
+      target_sr: 16000
 
 transforms:
-  FeatureExtractor:
-    sr: 16000
+    FeatureExtractor:
+      sr: 16000
 
 signal_augments:
-  RepeatAudio:
-    max_repeats: 6
+    RepeatAudio:
+      max_repeats: 6
 
 spec_augments:
-  MaskFrequency:
-    max_mask_length: 27
-  MaskTime:
-    max_mask_length: 165
-
+    MaskFrequency:
+      max_mask_length: 5
+    MaskTime:
+      max_mask_length: 156
 
 # Settings
 num_gpus: 2

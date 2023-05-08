@@ -52,22 +52,12 @@ class OneHotEncode(Transform):
 
     :param c: A list of classes to be used for one-hot encoding.
     :type c: list
-    :param labels: A list of labels to be encoded.
-    :type labels: list
     :return: A one-hot encoded tensor.
     :rtype: torch.Tensor
 
     """
 
     def __init__(self, c: list):
-        """
-        Initialize OneHotEncode object.
-
-        :param c: A list of classes to be used for one-hot encoding.
-        :type c: list
-
-        """
-
         self.c = c
 
     def __call__(self, labels):
@@ -89,37 +79,43 @@ class OneHotEncode(Transform):
 
 
 class ParentMultilabel(Transform):
+    """
+    A transform that extracts a list of labels from the parent directory name of a file path.
+
+    :param sep: The separator used to split the parent directory name into labels. Defaults to " ".
+    :type sep: str
+    """
+
     def __init__(self, sep=" "):
         self.sep = sep
 
     def __call__(self, path):
+        """
+        Extract a list of labels from the parent directory name of a file path.
+
+        :param path: The file path from which to extract labels.
+        :type path: str
+        :return: A list of labels extracted from the parent directory name of the input file path.
+        :rtype: List[str]
+        """
+
         label = path.split(os.path.sep)[-2].split(self.sep)
         return label
 
 
 class LabelsFromTxt(Transform):
-    """Extract multilabel parent directory from file path.
+    """
+    Extract multilabel parent directory from file path.
 
     This class is a transform that extracts a multilabel parent directory from a file path.
     The directory names are split by a specified separator.
 
     :param sep: The separator used to split the directory names. Defaults to " ".
     :type sep: str
-    :param path: The path of the file to extract the multilabel directory from.
-    :type path: str
-    :return: A list of directory names representing the multilabel parent directory.
-    :rtype: list
 
     """
 
     def __init__(self, delimiter=None):
-        """
-        Initialize ParentMultilabel object.
-
-        :param sep: The separator used to split the directory names. Defaults to " ".
-        :type sep: str
-
-        """
         self.delimiter = delimiter
 
     def __call__(self, path):
@@ -147,11 +143,6 @@ class PreprocessPipeline(Preprocess):
 
     :param target_sr: The target sampling rate to resample to.
     :type target_sr: int
-    :param path: The path to the audio file to load.
-    :type path: str
-    :return: A NumPy array of preprocessed audio data.
-    :rtype: numpy.ndarray
-
     """
 
     def __init__(self, target_sr):
@@ -250,22 +241,9 @@ class FeatureExtractor(Transform):
 
     :param sr: The sampling rate of the audio signal.
     :type sr: int
-    :param signal: The audio signal to extract features from.
-    :type signal: numpy.ndarray
-    :return: A tensor of extracted audio features.
-    :rtype: torch.Tensor
-
     """
 
     def __init__(self, sr):
-        """
-        Initialize FeatureExtractor object.
-
-        :param sr: The sampling rate of the audio signal.
-        :type sr: int
-
-        """
-
         self.transform = partial(ASTFeatureExtractor(), sampling_rate=sr, return_tensors="pt")
 
     def __call__(self, signal):
@@ -348,22 +326,9 @@ class RepeatAudio(Transform):
 
     :param max_repeats: The maximum number of times to repeat the audio data.
     :type max_repeats: int
-    :param signal: The audio data to repeat.
-    :type signal: numpy.ndarray
-    :return: The repeated audio data.
-    :rtype: numpy.ndarray
-
     """
 
     def __init__(self, max_repeats: int = 2):
-        """
-        Initialize RepeatAudio object.
-
-        :param max_repeats: The maximum number of times to repeat the audio data.
-        :type max_repeats: int
-
-        """
-
         self.max_repeats = max_repeats
 
     def __call__(self, signal):
@@ -388,22 +353,9 @@ class MaskFrequency(Transform):
 
     :param max_mask_length: The maximum number of consecutive frequencies to mask out from the spectrogram.
     :type max_mask_length: int
-    :param spec: The input spectrogram.
-    :type spec: numpy.ndarray
-    :return: The spectrogram with masked frequencies.
-    :rtype: numpy.ndarray
-
     """
 
     def __init__(self, max_mask_length: int = 0):
-        """
-        Initialize MaskFrequency object.
-
-        :param max_mask_length: The maximum number of consecutive frequencies to mask out from the spectrogram.
-        :type max_mask_length: int
-
-        """
-
         self.aug = FrequencyMasking(max_mask_length)
 
     def __call__(self, spec):
@@ -427,22 +379,9 @@ class MaskTime(Transform):
 
     :param max_mask_length: The maximum number of consecutive time steps to mask out from the spectrogram.
     :type max_mask_length: int
-    :param spec: The input spectrogram.
-    :type spec: numpy.ndarray
-    :return: The spectrogram with masked time steps.
-    :rtype: numpy.ndarray
-
     """
 
     def __init__(self, max_mask_length: int = 0):
-        """
-        Initialize MaskTime object.
-
-        :param max_mask_length: The maximum number of consecutive time steps to mask out from the spectrogram.
-        :type max_mask_length: int
-
-        """
-
         self.aug = TimeMasking(max_mask_length)
 
     def __call__(self, spec):

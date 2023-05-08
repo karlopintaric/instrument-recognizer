@@ -3,7 +3,6 @@ import os
 import time
 from json import JSONDecodeError
 
-
 import requests
 import soundfile as sf
 import streamlit as st
@@ -29,6 +28,13 @@ INSTRUMENTS = {
 
 
 def load_audio():
+    """
+    Upload a WAV audio file and display it in a Streamlit app.
+
+    :return: A BytesIO object representing the uploaded audio file, or None if no file was uploaded.
+    :rtype: Optional[BytesIO]
+    """
+
     audio_file = st.file_uploader(label="Upload audio file", type="wav", accept_multiple_files=True)
     if len(audio_file) > 0:
         st.audio(audio_file[0])
@@ -39,6 +45,14 @@ def load_audio():
 
 @st.cache_data(show_spinner=False)
 def check_for_api(max_tries: int):
+    """
+    Check if the API is running by making a health check request.
+
+    :param max_tries: The maximum number of attempts to check the API's health.
+    :type max_tries: int
+    :return: True if the API is running, False otherwise.
+    :rtype: bool
+    """
     trial_count = 0
 
     with st.spinner("Waiting for API..."):
@@ -56,14 +70,28 @@ def check_for_api(max_tries: int):
 
 
 def cut_audio_file(audio_file, name):
-    audio_data, sample_rate = sf.read(audio_file)
+    """
+    Cut an audio file and return the cut audio data as a tuple.
+
+    :param audio_file: The path of the audio file to be cut.
+    :type audio_file: str
+    :param name: The name of the audio file to be cut.
+    :type name: str
+    :raises RuntimeError: If the audio file cannot be read.
+    :return: A tuple containing the name and the cut audio data as a BytesIO object.
+    :rtype: tuple
+    """
+    try:
+        audio_data, sample_rate = sf.read(audio_file)
+    except RuntimeError as e:
+        raise e
 
     # Display audio duration
     duration = round(len(audio_data) / sample_rate, 2)
     st.info(f"Audio Duration: {duration} seconds")
 
     # Get start and end time for cutting
-    start_time = st.number_input("Start Time (seconds)", min_value=0.0, max_value=duration-1, step=0.1)
+    start_time = st.number_input("Start Time (seconds)", min_value=0.0, max_value=duration - 1, step=0.1)
     end_time = st.number_input("End Time (seconds)", min_value=start_time, value=duration, max_value=duration, step=0.1)
 
     # Convert start and end time to sample indices
@@ -84,7 +112,14 @@ def cut_audio_file(audio_file, name):
     return audio_file
 
 
-def display_predictions(predictions):
+def display_predictions(predictions: dict):
+    """
+    Display the predictions using instrument names instead of codes.
+
+    :param predictions: A dictionary containing the filenames and instruments detected in them.
+    :type predictions: dict
+    """
+
     # Display the results using instrument names instead of codes
     for filename, instruments in predictions.items():
         st.subheader(filename)
@@ -109,6 +144,13 @@ def display_predictions(predictions):
 
 
 def health_check():
+    """
+    Sends a health check request to the API and checks if it's running.
+
+    :return: Returns True if the API is running, else False.
+    :rtype: bool
+    """
+
     # Send a health check request to the API
     response = requests.get(f"{backend}/health-check", timeout=100)
 
@@ -120,6 +162,17 @@ def health_check():
 
 
 def predict(data, model_name):
+    """
+    Sends a POST request to the API with the provided data and model name.
+
+    :param data: The audio data to be used for prediction.
+    :type data: bytes
+    :param model_name: The name of the model to be used for prediction.
+    :type model_name: str
+    :return: The response from the API.
+    :rtype: requests.Response
+    """
+
     file = {"file": data}
     request_data = {"model_name": model_name}
 
@@ -132,6 +185,19 @@ def predict(data, model_name):
 
 @st.cache_data(show_spinner=False)
 def predict_single(audio_file, name, selected_model):
+    """
+    Predicts the instruments in a single audio file using the selected model.
+
+    :param audio_file: The audio file to be used for prediction.
+    :type audio_file: bytes
+    :param name: The name of the audio file.
+    :type name: str
+    :param selected_model: The name of the selected model.
+    :type selected_model: str
+    :return: A dictionary containing the predicted instruments for the audio file.
+    :rtype: dict
+    """
+
     predictions = {}
 
     with st.spinner("Predicting instruments..."):
@@ -144,7 +210,7 @@ def predict_single(audio_file, name, selected_model):
             st.write(response)
             try:
                 st.json(response.json())
-            except JSONDecodeError as e:
+            except JSONDecodeError:
                 st.error(response.text)
             st.stop()
     return predictions
@@ -152,6 +218,17 @@ def predict_single(audio_file, name, selected_model):
 
 @st.cache_data(show_spinner=False)
 def predict_multiple(audio_files, selected_model):
+    """
+    Generates predictions for multiple audio files using the selected model.
+
+    :param audio_files: A list of audio files to make predictions on.
+    :type audio_files: List[UploadedFile]
+    :param selected_model: The model to use for making predictions.
+    :type selected_model: str
+    :return: A dictionary where the keys are the names of the audio files and the values are the predicted labels.
+    :rtype: Dict[str, str]
+    """
+
     predictions = {}
     progress_text = "Getting predictions for all files. Please wait."
     progress_bar = st.empty()

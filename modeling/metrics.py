@@ -1,15 +1,15 @@
 import numpy as np
 from sklearn.metrics import (
+    accuracy_score,
     average_precision_score,
     f1_score,
     hamming_loss,
     precision_recall_curve,
     zero_one_loss,
-    accuracy_score
 )
 
 
-def hamming_score(preds, targets, thresholds: np.array=None):
+def hamming_score(preds, targets, thresholds: np.array = None):
     """Compute Hamming Score.
 
     This function computes the Hamming Score, a performance metric used for multi-label classification tasks.
@@ -25,12 +25,12 @@ def hamming_score(preds, targets, thresholds: np.array=None):
     """
     if thresholds is None:
         thresholds = optimize_accuracy(preds, targets)
-    
+
     preds = (preds > thresholds).astype(int)
     return 1 - hamming_loss(targets, preds)
 
 
-def zero_one_score(preds, targets, thresholds: np.array=None):
+def zero_one_score(preds, targets, thresholds: np.array = None):
     """
     Compute Zero-One Score.
 
@@ -49,12 +49,12 @@ def zero_one_score(preds, targets, thresholds: np.array=None):
 
     if thresholds is None:
         thresholds = optimize_accuracy(preds, targets)
-    
+
     preds = (preds > thresholds).astype(int)
     return 1 - zero_one_loss(targets, preds, normalize=True)
 
 
-def mean_f1_score(preds, targets, thresholds: np.array=None):
+def mean_f1_score(preds, targets, thresholds: np.array = None):
     """Compute Mean F1 Score.
 
     This function computes the Mean F1 Score, a performance metric used for multi-label
@@ -71,12 +71,12 @@ def mean_f1_score(preds, targets, thresholds: np.array=None):
     """
     if thresholds is None:
         thresholds = optimize_f1_score(preds, targets)
-    
+
     preds = (preds > thresholds).astype(int)
     return f1_score(targets, preds, average="samples", zero_division=0)
 
 
-def per_instr_f1_score(preds, targets, thresholds: np.array=None):
+def per_instr_f1_score(preds, targets, thresholds: np.array = None):
     """Compute Per-Instrument F1 Score.
 
     This function computes the F1 Score for each instrument separately in a multi-label
@@ -92,7 +92,7 @@ def per_instr_f1_score(preds, targets, thresholds: np.array=None):
     :return: The computed Per-Instrument F1 Score.
     :rtype: numpy array
     """
-    
+
     if thresholds is None:
         thresholds = optimize_f1_score(preds, targets)
 
@@ -145,10 +145,23 @@ def optimize_f1_score(preds, targets):
         ix = np.argmax(fscore)
         best_thresh = thresholds[ix]
         label_thresholds[i] = best_thresh
-        
+
     return label_thresholds
-        
+
+
 def optimize_accuracy(preds, targets):
+    """
+    Determine the optimal threshold for each label, based on the predicted probabilities and the true targets,
+    in order to maximize the accuracy of the predictions.
+
+    :param preds: A 2D NumPy array containing the predicted probabilities for each label.
+    :type preds: numpy.ndarray
+    :param targets: A 2D NumPy array containing the true binary targets for each label.
+    :type targets: numpy.ndarray
+    :raises ValueError: If the input arrays are not 2D arrays or have incompatible shapes.
+    :return: A 1D NumPy array containing the optimal threshold for each label.
+    :rtype: numpy.ndarray
+    """
 
     # Vary the threshold for each label and calculate accuracy for each threshold
     thresholds = np.arange(0.0001, 1, 0.0001)
@@ -156,13 +169,11 @@ def optimize_accuracy(preds, targets):
     for i in range(preds.shape[1]):
         accuracies = []
         for th in thresholds:
-            y_pred = (preds[:, i] >= th).astype(int) # Convert probabilities to binary predictions using the threshold
+            y_pred = (preds[:, i] >= th).astype(int)  # Convert probabilities to binary predictions using the threshold
             acc = accuracy_score(targets[:, i], y_pred)
             accuracies.append(acc)
         # Find the threshold that gives the highest accuracy for this label
         best_idx = np.argmax(accuracies)
         best_thresholds[i] = thresholds[best_idx]
-    
-    return best_thresholds
 
-        
+    return best_thresholds

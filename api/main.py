@@ -1,15 +1,13 @@
 import logging
-import sys
 from logging.handlers import RotatingFileHandler
-from typing import Dict
 from pathlib import Path
+from typing import Dict
 
 from fastapi import Depends, FastAPI, File, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from ModelService import ModelServiceAST
 from pydantic import BaseModel, validator
-
-from ModelService import ModelServiceAST  # noqa
 
 LOG_SAVE_DIR = Path(__file__).parent / "logs"
 
@@ -65,6 +63,7 @@ class PredictionRequest(BaseModel):
             raise InvalidModelError
         return v
 
+
 class PredictionResult(BaseModel):
     prediction: Dict[str, Dict[str, int]]
 
@@ -99,10 +98,12 @@ def handle_exceptions(request, ex):
     # If an exception occurs during processing, return a JSON response with an error message
     return JSONResponse(content={"error": "Internal Server Error", "detail": str(ex)}, status_code=500)
 
+
 @app.get("/")
 def root():
     logger.info("Received request to root endpoint")
     return {"message": "Welcome to my API. Go to /docs to view the documentation."}
+
 
 @app.get("/health-check")
 def health_check():

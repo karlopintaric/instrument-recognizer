@@ -4,8 +4,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from transformers import ASTConfig, ASTModel
-from torch.utils.data import DataLoader
-import copy
 
 
 class StudentAST(nn.Module):
@@ -102,16 +100,16 @@ class ASTPretrained(nn.Module):
 
     def __init__(self, n_classes: int, download_weights: bool = True, freeze_body: bool = False, dropout: float = 0.5):
         super().__init__()
-        
+
         if download_weights:
             self.base_model = ASTModel.from_pretrained("MIT/ast-finetuned-audioset-10-10-0.4593")
         else:
             config = ASTConfig()
             self.base_model = ASTModel(config=config)
-        
+
         if freeze_body:
             self.base_model = freeze(self.base_model)
-        
+
         fc_in = self.base_model.config.hidden_size
 
         self.classifier = nn.Sequential(
@@ -286,21 +284,35 @@ def interpolate_params(student: nn.Module, teacher: nn.Module):
 
     return new_params
 
+
 def average_model_weights(model_weights_list):
+    """
+    Compute the average weights of a list of PyTorch models.
+
+    :param model_weights_list: A list of file paths to PyTorch model weight files.
+    :type model_weights_list: List[str]
+    :raises ValueError: If the input list is empty.
+    :return: A dictionary containing the average weights of the models.
+    :rtype: Dict[str, torch.Tensor]
+    """
+
+    if not model_weights_list:
+        raise ValueError("The input list cannot be empty.")
+
     num_models = len(model_weights_list)
     averaged_weights = {}
-    
+
     # Load the first model weights
     state_dict = torch.load(model_weights_list[0])
-    
+
     # Iterate through the remaining models and add their weights to the first model's weights
     for i in range(1, num_models):
         state_dict_i = torch.load(model_weights_list[i])
         for key in state_dict.keys():
             state_dict[key] += state_dict_i[key]
-    
+
     # Compute the average of the weights
     for key in state_dict.keys():
         averaged_weights[key] = state_dict[key] / num_models
-    
+
     return averaged_weights

@@ -123,6 +123,7 @@ def collate_fn(data: List[Tuple[torch.Tensor, torch.Tensor]]):
 
     features, labels = zip(*data)
     features = [item.squeeze().T for item in features]
+    # Pads items to same length if they're not
     features = pad_sequence(features, batch_first=True)
     labels = torch.stack(labels)
 
@@ -159,12 +160,3 @@ def get_loader(config: dict, subset: str):
         num_workers=torch.get_num_threads() - 1,
         collate_fn=collate_fn,
     )
-
-
-if __name__ == "__main__":
-    from utils import parse_config
-
-    config = parse_config("config.yaml")
-    dl = get_loader(config, subset="train")
-    sample, _ = next(iter(dl))
-    a = 1

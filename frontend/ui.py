@@ -1,9 +1,6 @@
-import os,sys
-from pathlib import Path
 import json
 
 import streamlit as st
-
 from ui_backend import (
     check_for_api,
     cut_audio_file,
@@ -56,19 +53,18 @@ def main():
             cut_valid = False
         else:
             audio_file = audio_file[0]
-            cut_valid=True
+            cut_valid = True
             name = audio_file.name
 
     if cut_valid:
         cut_audio = st.checkbox(
             "✂️ Cut duration",
             disabled=not predict_valid,
-            help="Cut a long audio file. Model works best if audio is around 20 seconds",
+            help="Cut a long audio file. Model works best if audio is around 15 seconds",
         )
 
         if cut_audio:
             audio_file = cut_audio_file(audio_file, name)
-            
 
     result = st.button("Predict", disabled=not predict_valid, help="Send the audio to API to get a prediction")
 
@@ -79,7 +75,6 @@ def main():
 
         else:
             predictions = predict_single(audio_file, name, selected_model)
-            
 
         # Sort the dictionary alphabetically by key
         sorted_predictions = dict(sorted(predictions.items()))

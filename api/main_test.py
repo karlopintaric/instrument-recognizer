@@ -1,9 +1,11 @@
 import io
+import sys
 from pathlib import Path
 
 import soundfile as sf
 from fastapi.testclient import TestClient
 
+sys.path.append(".")
 
 from .main import app  # noqa
 
