@@ -8,6 +8,3 @@ font = "sans serif"
 
 [browser]
 gatherUsageStats = false
-
-[client]
-toolbarMode = "viewer"

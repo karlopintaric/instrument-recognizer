@@ -4,7 +4,7 @@ import time
 
 def launch_api():
     # Launch the API script with uvicorn from the api directory
-    subprocess.run(["uvicorn", "api.main:app", "--host", "0.0.0.0" , "--port", "8000"])
+    subprocess.run(["uvicorn", "main:app", "--host", "0.0.0.0" , "--port", "8000"], cwd="api")
 
 def launch_streamlit():
     # Launch the Streamlit script from the streamlit directory
