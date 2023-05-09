@@ -13,6 +13,7 @@ LOG_SAVE_DIR = Path(__file__).parent / "logs"
 
 ml_models = {}
 ml_models["Accuracy"] = ModelServiceAST(model_type="accuracy")
+ml_models["Speed"] = ModelServiceAST(model_type="speed")
 
 app = FastAPI()
 

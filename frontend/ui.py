@@ -23,6 +23,7 @@ def main():
         selected_model = st.selectbox(
             "Select Model",
             ("Accuracy", "Speed"),
+            index=0,
             help="Select a slower but more accurate model or a faster but less accurate model",
         )
 
@@ -36,7 +37,7 @@ def main():
     audio_file = load_audio()
 
     # Send a health check request to the API in a loop until it is running
-    api_running = check_for_api(6)
+    api_running = check_for_api(10)
 
     # Enable or disable a button based on API status
     predict_valid = False

@@ -177,7 +177,7 @@ def predict(data, model_name):
     request_data = {"model_name": model_name}
 
     response = requests.post(
-        f"{backend}/predict", params=request_data, files=file, timeout=100
+        f"{backend}/predict", params=request_data, files=file, timeout=300
     )  # Replace with your API endpoint URL
 
     return response

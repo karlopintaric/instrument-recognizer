@@ -1,2 +1,2 @@
-from modeling.models import ASTPretrained
+from modeling.models import ASTPretrained, StudentAST
 from modeling.transforms import FeatureExtractor, PreprocessPipeline

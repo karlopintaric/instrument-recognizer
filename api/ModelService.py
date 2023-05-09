@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from torchvision import transforms
 
-from modeling import ASTPretrained, FeatureExtractor, PreprocessPipeline
+from modeling import ASTPretrained, FeatureExtractor, PreprocessPipeline, StudentAST
 
 MODELS_FOLDER = Path(__file__).parent / "models"
 
@@ -25,7 +25,8 @@ def load_model(model_type: str):
         model = ASTPretrained(n_classes=11, download_weights=False)
         model.load_state_dict(torch.load(f"{MODELS_FOLDER}/acc_model_ast.pth", map_location=torch.device("cpu")))
     else:
-        pass
+        model = StudentAST(n_classes=11, hidden_size=192, num_heads=3)
+        model.load_state_dict(torch.load(f"{MODELS_FOLDER}/speed_model_ast.pth", map_location=torch.device("cpu")))
     model.eval()
     return model
 
@@ -42,15 +43,17 @@ def load_labels():
     return labels
 
 
-def load_thresholds():
+def load_thresholds(model_type: str):
     """
     Loads the prediction thresholds for the AST model.
 
     :return: The prediction thresholds for each class.
     :rtype: np.ndarray
     """
-
-    thresholds = np.load(f"{MODELS_FOLDER}/acc_model_thresh.npy", allow_pickle=True)
+    if model_type == "accuracy":
+        thresholds = np.load(f"{MODELS_FOLDER}/acc_model_thresh.npy", allow_pickle=True)
+    else:
+        thresholds = np.load(f"{MODELS_FOLDER}/speed_model_thresh.npy", allow_pickle=True)
     return thresholds
 
 
@@ -65,7 +68,7 @@ class ModelServiceAST:
 
         self.model = load_model(model_type)
         self.labels = load_labels()
-        self.thresholds = load_thresholds()
+        self.thresholds = load_thresholds(model_type)
         self.transform = transforms.Compose([PreprocessPipeline(target_sr=16000), FeatureExtractor(sr=16000)])
 
     def get_prediction(self, audio):

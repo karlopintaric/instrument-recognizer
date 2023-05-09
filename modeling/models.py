@@ -16,16 +16,14 @@ class StudentAST(nn.Module):
     :type hidden_size: int, optional
     :param num_heads: The number of attention heads to use, defaults to 6.
     :type num_heads: int, optional
-    :param dropout: The dropout probability to use, defaults to 0.25.
-    :type dropout: float, optional
     """
 
-    def __init__(self, n_classes: int, hidden_size: int = 384, num_heads: int = 6, dropout: float = 0.25):
+    def __init__(self, n_classes: int, hidden_size: int = 384, num_heads: int = 6):
         super().__init__()
 
         config = ASTConfig(hidden_size=hidden_size, num_attention_heads=num_heads, intermediate_size=hidden_size * 4)
         self.base_model = ASTModel(config=config)
-        self.classifier = StudentClassificationHead(hidden_size, n_classes, dropout)
+        self.classifier = StudentClassificationHead(hidden_size, n_classes)
 
     def forward(self, x: torch.Tensor):
         """
@@ -50,16 +48,13 @@ class StudentClassificationHead(nn.Module):
     :type emb_size: int
     :param n_classes: The number of classes to classify.
     :type n_classes: int
-    :param dropout: The dropout probability to use.
-    :type dropout: float
     """
 
-    def __init__(self, emb_size: int, n_classes: int, dropout: float):
+    def __init__(self, emb_size: int, n_classes: int):
         super().__init__()
 
         self.cls_head = nn.Linear(emb_size, n_classes)
         self.dist_head = nn.Linear(emb_size, n_classes)
-        self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, x: torch.Tensor):
         """
@@ -72,8 +67,8 @@ class StudentClassificationHead(nn.Module):
         """
 
         x_cls, x_dist = x[:, 0], x[:, 1]
-        x_cls_head = self.dropout(self.cls_head(x_cls))
-        x_dist_head = self.dropout(self.dist_head(x_dist))
+        x_cls_head = self.cls_head(x_cls)
+        x_dist_head = self.dist_head(x_dist)
 
         if self.training:
             x = x_cls_head, x_dist_head
