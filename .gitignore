@@ -137,4 +137,3 @@ scripts/wandb/
 
 # models
 weights/
-api/models/
