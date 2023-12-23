@@ -1,15 +1,19 @@
+import os
 import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Dict
 
+
 from fastapi import Depends, FastAPI, File, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from ModelService import ModelServiceAST
+from src.api.ModelService import ModelServiceAST
 from pydantic import BaseModel, validator
 
 LOG_SAVE_DIR = Path(__file__).parent / "logs"
+if not os.path.exists(LOG_SAVE_DIR):
+    os.makedirs(LOG_SAVE_DIR)
 
 ml_models = {}
 ml_models["Accuracy"] = ModelServiceAST(model_type="accuracy")

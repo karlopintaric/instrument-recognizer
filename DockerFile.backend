@@ -1,0 +1,17 @@
+# Use an official Python runtime as the base image
+FROM python:3.9-slim
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Copy the setup.py file and the package directory into the container
+COPY ./setup.py .
+
+# Install the package and its dependencies
+COPY ./src ./src
+
+RUN pip install --no-cache-dir .[backend] torch==1.13.1+cpu torchvision==0.14.1+cpu torchaudio==0.13.1 --extra-index-url https://download.pytorch.org/whl/cpu
+
+EXPOSE 7860
+
+CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "7860"]

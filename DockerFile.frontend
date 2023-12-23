@@ -6,8 +6,8 @@ WORKDIR /app
 
 RUN pip install streamlit==1.21.0 requests==2.28.2 soundfile==0.12.1
 
-COPY frontend/ .
-COPY ./.streamlit ./.streamlit
+COPY ./src/frontend/ .
+COPY ./src/frontend/.streamlit ./.streamlit
 
 ENV IS_DOCKER Yes
 

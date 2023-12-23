@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 sys.path.append(".")
 
-from .main import app  # noqa
+from src.api.main import app  # noqa
 
 TEST_FILES_DIR = Path(__file__).parent / "test_files"
 TEST_WAV_FILE = TEST_FILES_DIR / "test.wav"

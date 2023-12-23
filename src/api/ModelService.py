@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from torchvision import transforms
 
-from modeling import ASTPretrained, FeatureExtractor, PreprocessPipeline, StudentAST
+from src.modeling import ASTPretrained, FeatureExtractor, PreprocessPipeline, StudentAST
 
 MODELS_FOLDER = Path(__file__).parent / "models"
 

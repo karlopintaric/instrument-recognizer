@@ -2,15 +2,16 @@ import io
 import os
 import time
 from json import JSONDecodeError
+import math
 
 import requests
 import soundfile as sf
 import streamlit as st
 
 if os.environ.get("IS_DOCKER", False):
-    backend = "http://api:8000"
+    backend = "http://api:7860"
 else:
-    backend = "http://0.0.0.0:8000"
+    backend = "http://0.0.0.0:7860"
 
 INSTRUMENTS = {
     "tru": "Trumpet",

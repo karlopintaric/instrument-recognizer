@@ -4,17 +4,19 @@ services:
   api:
     build:
       context: .
-      dockerfile: api/DockerFile.backend
+      dockerfile: DockerFile.backend
     ports:
-      - "8000:8000"
+      - "7860:7860"
     networks:
       - deploy_network
     container_name: api
+    tty: true
+    stdin_open: true
 
   streamlit:
     build:
       context: .
-      dockerfile: frontend/DockerFile.frontend
+      dockerfile: DockerFile.frontend
     depends_on:
       - api
     ports:
